@@ -338,7 +338,7 @@ const storyArt = s => s.img ? `<img src="${esc(s.img)}" alt="" style="width:100%
 
 /* ---------- state ---------- */
 let app, auth, db;
-let uid = null, me = null, isAdmin = false;
+let uid = null, me = null, isAdmin = false, adminTry = false;
 let chats = [], chanList = [], stories = [];
 const ucache = new Map(), pend = new Set();
 let unsubs = [], hbTimer = null, firstChats = true;
@@ -418,7 +418,8 @@ function teardown() {
 function startApp() {
   $('#auth').hidden = true; $('#app').hidden = false;
   $('#empty').innerHTML = `${logo(120)}<h2 style="color:var(--text);letter-spacing:.14em">DAMA</h2><p>اختر محادثة لبدء التواصل<br><small>رسائلك محمية بقواعد أمان على الخادم</small></p>`;
-  getDoc(doc(db, 'admins', uid)).then(s => { isAdmin = s.exists(); if (tab === 'settings') renderTab(); }).catch(() => {});
+  getDoc(doc(db, 'admins', uid)).then(s => { isAdmin = s.exists(); if (tab === 'settings') renderTab();
+    if (adminTry) { adminTry = false; if (isAdmin) setTimeout(openAdmin, 900); else { toast('الحساب ده مش أدمن'); signOut(auth).catch(() => {}); } } }).catch(() => { adminTry = false; });
   unsubs.push(onSnapshot(doc(db, 'users', uid), s => { if (s.exists()) { me = {id: uid, ...s.data()}; ucache.set(uid, me); if (me.banned) bannedScreen(); } }, console.error));
   unsubs.push(onSnapshot(query(collection(db, 'chats'), where('members', 'array-contains', uid)), onChats, e => toast('خطأ في تحميل المحادثات: ' + e.code)));
   unsubs.push(onSnapshot(query(collection(db, 'channels'), limit(100)), s => { chanList = s.docs.map(d => ({id: d.id, ...d.data()})); if (tab === 'channels' || tab === 'chats') renderTab(); }, console.error));
@@ -459,6 +460,8 @@ function authView(v) {
     <div class="field">${ic('lock')}<input id="pw" type="password" placeholder="كلمة السر" autocomplete="current-password"></div>
     <div class="err" id="ae"></div>
     <button class="btn pri" data-a="login">تسجيل الدخول</button>
+    <button class="btn out" data-a="adminlogin">دخول كأدمن</button>
+    <button class="btn out" data-a="adminlogin" data-g="1">دخول كأدمن بحساب جوجل</button>
     <button class="link" data-a="forgot" style="text-align:center">نسيت كلمة السر؟</button>
     <p style="text-align:center;color:var(--mute);font-size:.9rem">ليس لديك حساب؟ <button class="link" data-a="auth" data-v="signup">إنشاء حساب جديد</button></p>`;
   if (v === 'signup') h = head('إنشاء حساب جديد', 'ابدأ رحلتك معنا الآن') + `
@@ -698,7 +701,7 @@ function bubble(m, g, oR) {
   if (me_) tick = m.pending ? icf('chk').replace('class="i flip"', 'class="i" style="width:14px;height:14px;opacity:.5"')
     : (!g && oR >= t && t) ? ic('chk2').replace('class="i"', 'class="i" style="width:15px;height:15px;color:#7fd0ff"')
     : ic('chk2').replace('class="i"', 'class="i" style="width:15px;height:15px;opacity:.55"');
-  return `<div class="b ${me_ ? 'me' : ''}" ${me_ && !m.pending ? `data-a="mbub" data-id="${m.id}"` : ''}>${who}${body}<time>${t ? fmtT(t) : ''}${tick}</time></div>`;
+  return `<div class="b ${me_ ? 'me' : ''}" ${me_ ? (!m.pending ? `data-a="mbub" data-id="${m.id}"` : '') : `data-a="mrep" data-id="${m.id}"`}>${who}${body}<time>${t ? fmtT(t) : ''}${tick}</time></div>`;
 }
 function drawMsgs() {
   const c = curChat(), el = $('#msgs'); if (!c || !el) return;
@@ -954,12 +957,16 @@ async function openAdmin() {
   ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>لوحة المطور <span class="crown">♛</span></b><small>صلاحيات المشرف</small></div></header><div class="scroll" id="adm"><div class="empty-note">جارٍ التحميل...</div></div>`);
   try {
     const cnt = async n => (await getCountFromServer(collection(db, n))).data().count;
-    const [u, c, st] = await Promise.all([cnt('users'), cnt('channels'), cnt('stories')]);
+    const [u, c, st, rc] = await Promise.all([cnt('users'), cnt('channels'), cnt('stories'), cnt('reports')]);
+    const rps = await getDocs(query(collection(db, 'reports'), orderBy('ts', 'desc'), limit(30)));
+    const sts = await getDocs(query(collection(db, 'stories'), where('exp', '>', Date.now()), limit(50)));
     const us = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(50)));
     if (curKind !== 'admin') return;
-    $('#adm').innerHTML = `<div class="stat"><div><b>${u}</b><span>المستخدمون</span></div><div><b>${c}</b><span>القنوات</span></div><div><b>${st}</b><span>القصص</span></div><div><b>${chanList.filter(x => x.verified).length}</b><span>قنوات موثقة</span></div></div>
+    $('#adm').innerHTML = `<div class="stat"><div><b>${u}</b><span>المستخدمون</span></div><div><b>${c}</b><span>القنوات</span></div><div><b>${st}</b><span>القصص</span></div><div><b>${chanList.filter(x => x.verified).length}</b><span>قنوات موثقة</span></div><div><b>${rc}</b><span>بلاغات</span></div></div>
+      <div class="lbl" style="margin:12px 16px">البلاغات</div>${rps.docs.map(d => { const r = d.data(); const body = r.t === 'text' ? esc(r.x) : r.t === 'img' && r.x && r.x.startsWith('data:image') ? `<img src="${esc(r.x)}" style="max-width:160px;border-radius:8px;display:block">` : '[' + esc(r.t) + ']'; return `<div class="urow" style="flex-wrap:wrap"><div class="n" style="flex-basis:100%"><b>${esc(r.fromName || '')}</b><small>أبلغ: ${esc(r.byName || '')}</small><div style="margin-top:6px">${body}</div></div><button class="btn sm danger" data-a="rdel" data-id="${d.id}">حذف الرسالة</button><button class="btn sm danger" data-a="rban" data-id="${d.id}" data-u="${esc(r.from)}">حظر المرسل</button><button class="btn sm out" data-a="rdis" data-id="${d.id}">تجاهل</button></div>`; }).join('') || '<div class="empty-note">لا توجد بلاغات</div>'}
+      <div class="lbl" style="margin:12px 16px">القصص النشطة</div>${sts.docs.map(d => { const x = d.data(); return `<div class="urow"><div class="n"><b>${esc(x.name)}</b><small>${esc((x.text || '').slice(0, 40))}</small></div><button class="ib" data-a="admstory" data-id="${d.id}" style="color:var(--danger)" aria-label="حذف">${ic('trash')}</button></div>`; }).join('') || '<div class="empty-note">لا توجد قصص</div>'}
       <div class="lbl" style="margin:12px 16px">القنوات</div>${chanList.map(ch => `<div class="urow"><div class="n"><b>${esc(ch.name)}</b><small>${(ch.followers || []).length} مشترك</small></div><button class="btn sm ${ch.verified ? 'out' : 'pri'}" data-a="verify" data-id="${ch.id}">${ch.verified ? 'إلغاء التوثيق' : 'توثيق'}</button><button class="ib" data-a="delchan" data-id="${ch.id}" data-adm="1" style="color:var(--danger)" aria-label="حذف">${ic('trash')}</button></div>`).join('') || '<div class="empty-note">لا توجد قنوات</div>'}
-      <div class="lbl" style="margin:12px 16px">آخر المستخدمين</div>${us.docs.map(d => { const x = d.data(); return `<div class="urow">${av(x.name, colorOf(x.name), 38, false, x.photo)}<div class="n"><b>${esc(x.name)}</b><small dir="ltr">@${esc(x.handle)}</small></div>${d.id === uid ? '' : `<button class="btn sm ${x.banned ? 'pri' : 'danger'}" data-a="ban" data-id="${d.id}" data-b="${x.banned ? 1 : 0}">${x.banned ? 'إلغاء الحظر' : 'حظر'}</button>`}</div>`; }).join('')}`;
+      <div class="lbl" style="margin:12px 16px">آخر المستخدمين</div>${us.docs.map(d => { const x = d.data(); return `<div class="urow">${av(x.name, colorOf(x.name), 38, false, x.photo)}<div class="n"><b>${esc(x.name)}</b><small dir="ltr">@${esc(x.handle)}</small></div>${d.id === uid ? '' : `<button class="btn sm ${x.banned ? 'pri' : 'danger'}" data-a="ban" data-id="${d.id}" data-b="${x.banned ? 1 : 0}">${x.banned ? 'إلغاء الحظر' : 'حظر'}</button><button class="btn sm danger" data-a="deluser" data-id="${d.id}" data-h="${esc(x.handle)}" style="margin-inline-start:6px">حذف</button>`}</div>`; }).join('')}`;
   } catch (e) { $('#adm').innerHTML = `<div class="empty-note">تعذر التحميل: ${esc(e.code || e.message)}</div>`; }
 }
 
@@ -973,6 +980,12 @@ document.addEventListener('click', async e => {
   try { switch (a) {
     case 'auth': authView(v); break;
     case 'google': googleSignIn(t); break;
+    case 'adminlogin': {
+      if (t.dataset.g) { adminTry = true; googleSignIn(t); break; }
+      const em = $('#em').value.trim(), pw = $('#pw').value;
+      if (!okEmail(em)) return setAuthErr('اكتب بريداً إلكترونياً صحيحاً');
+      if (!pw) return setAuthErr('اكتب كلمة السر');
+      adminTry = true; busy(t, true); try { await signInWithEmailAndPassword(auth, em, pw); } catch (x) { adminTry = false; setAuthErr(authMsg(x)); } busy(t, false); break; }
     case 'login': {
       const em = $('#em').value.trim(), pw = $('#pw').value;
       if (!okEmail(em)) return setAuthErr('اكتب بريداً إلكترونياً صحيحاً');
@@ -1063,6 +1076,18 @@ document.addEventListener('click', async e => {
     case 'tgnotif': notifOn = !notifOn; localStorage.setItem('dama_notif', notifOn ? '1' : '0');
       if (notifOn && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); renderTab(); break;
     case 'admin': openAdmin(); break;
+    case 'mrep': { const m = msgs.find(x => x.id === id); if (!m) break;
+      confirmBox('إبلاغ عن رسالة', 'هتتبعت الرسالة دي للمشرف للمراجعة.', 'إبلاغ', async () => {
+        try { const x = m.t === 'text' ? m.x : (m.t === 'img' && m.data && m.data.length < 400000 ? m.data : (m.name || '')); await addDoc(collection(db, 'reports'), {chat: cur, mid: id, from: m.from, fromName: m.fromName || getU(m.from).name, t: m.t, x, by: uid, byName: me.name, ts: serverTimestamp()}); toast('تم الإبلاغ، شكراً'); }
+        catch (x) { toast('تعذر الإبلاغ: ' + (x.code || x.message)); } }); break; }
+    case 'rdel': { const r = await getDoc(doc(db, 'reports', id)); if (r.exists()) { const d = r.data(); try { await deleteDoc(doc(db, 'chats', d.chat, 'messages', d.mid)); } catch (x) {} } await deleteDoc(doc(db, 'reports', id)); toast('تم حذف الرسالة'); openAdmin(); break; }
+    case 'rban': await updateDoc(doc(db, 'users', t.dataset.u), {banned: true}); await deleteDoc(doc(db, 'reports', id)); toast('تم حظر المرسل'); openAdmin(); break;
+    case 'rdis': await deleteDoc(doc(db, 'reports', id)); openAdmin(); break;
+    case 'admstory': await deleteDoc(doc(db, 'stories', id)); openAdmin(); break;
+    case 'deluser': confirmBox('حذف المستخدم', 'هيتم حذف حسابه واسم المستخدم وقصصه نهائياً.', 'حذف', async () => {
+      try { const ss = await getDocs(query(collection(db, 'stories'), where('uid', '==', id))); const b = writeBatch(db);
+        ss.docs.forEach(d => b.delete(d.ref)); b.delete(doc(db, 'handles', t.dataset.h)); b.delete(doc(db, 'users', id)); await b.commit(); toast('تم حذف المستخدم'); }
+      catch (x) { toast('تعذر الحذف: ' + (x.code || x.message)); } openAdmin(); }); break;
     case 'ban': await updateDoc(doc(db, 'users', id), {banned: t.dataset.b !== '1'}); openAdmin(); break;
     case 'verify': { const c = chanList.find(x => x.id === id); await updateDoc(doc(db, 'channels', id), {verified: !c.verified}); setTimeout(openAdmin, 300); break; }
     case 'mx': $('#modal').hidden = true; $('#modal').innerHTML = ''; break;
