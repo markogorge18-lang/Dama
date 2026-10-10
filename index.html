@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DAMA WhatsApp — داما</title>
+<meta name="theme-color" content="#04080f"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04080f; --bg2:#08111f; --card:#0c1a33; --card2:#112347;
+  --line:rgba(46,124,255,.30); --line2:rgba(46,124,255,.55);
+  --blue:#1f6bff; --blue2:#4aa3ff; --text:#eaf1ff; --mute:#8296b8;
+  --ok:#2ecc71; --danger:#ff5a6a; --glow:0 0 18px rgba(31,107,255,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:Cairo,Tahoma,Arial,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit;outline:none}
+[hidden]{display:none!important}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--blue2);outline-offset:2px}
+
+/* ---------- Layout ---------- */
+#app{position:fixed;inset:0;display:flex;background:
+  radial-gradient(900px 500px at 85% -10%,rgba(31,107,255,.18),transparent 60%),
+  radial-gradient(700px 500px at 0% 110%,rgba(31,107,255,.12),transparent 60%),var(--bg)}
+#main{display:flex;flex-direction:column;width:100%;height:100%;min-width:0;padding-top:env(safe-area-inset-top,0)}
+#empty{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:var(--mute);text-align:center}
+@media(min-width:900px){
+  #main{width:420px;flex:none;border-inline-end:1px solid var(--line)}
+  #empty{display:flex}
+}
+.screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20;animation:slide .22s ease-out;
+  padding-top:env(safe-area-inset-top,0)}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@media(min-width:900px){.screen.pane{inset:0 auto 0 0;width:calc(100% - 420px);background:
+  radial-gradient(700px 400px at 70% 0%,rgba(31,107,255,.10),transparent 60%),var(--bg)}}
+
+/* ---------- Bars ---------- */
+.bar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(8,17,31,.85);backdrop-filter:blur(8px);min-height:60px}
+.bar .ttl{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.bar .ttl b{font-size:1.02rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .ttl small{color:var(--blue2);font-size:.76rem}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--text);flex:none}
+.ib:hover{background:rgba(46,124,255,.14)}
+.brand{display:flex;align-items:center;gap:8px;flex:1}
+.brand b{font-weight:800;letter-spacing:.12em;font-size:1.05rem;line-height:1}
+.brand small{display:block;color:var(--blue2);font-size:.7rem;font-weight:700;letter-spacing:.04em;line-height:1.1}
+
+/* ---------- Avatars ---------- */
+.av{position:relative;width:var(--s,46px);height:var(--s,46px);border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:calc(var(--s,46px)*.4);flex:none;
+  border:1.5px solid var(--line2);box-shadow:0 0 0 3px rgba(5,10,20,.8)}
+.av i.on{position:absolute;bottom:0;inset-inline-start:0;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--bg)}
+.av.ring{border:0;padding:0}
+.ringwrap{padding:3px;border-radius:50%;background:conic-gradient(var(--blue2),var(--blue),#0a3a9e,var(--blue2));display:inline-grid}
+.ringwrap.seen{background:var(--line)}
+.ringwrap .av{box-shadow:0 0 0 3px var(--bg);border:0}
+
+/* ---------- Lists ---------- */
+.scroll{flex:1;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.row{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;border-bottom:1px solid rgba(46,124,255,.10);width:100%;text-align:start}
+.row:hover,.row.active{background:rgba(46,124,255,.10)}
+.row .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row .mid b{font-size:.98rem;display:flex;align-items:center;gap:5px}
+.row .mid span{color:var(--mute);font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;color:var(--mute);font-size:.74rem;flex:none}
+.badge{min-width:22px;height:22px;border-radius:11px;background:var(--blue);color:#fff;font-size:.74rem;font-weight:700;display:grid;place-items:center;padding:0 6px;box-shadow:var(--glow)}
+.vf{width:15px;height:15px;color:var(--blue2)}
+.search{margin:10px 12px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:42px;color:var(--mute)}
+.search input{flex:1;background:none;border:0;min-width:0}
+.empty-note{padding:36px 20px;text-align:center;color:var(--mute);font-size:.92rem}
+
+/* ---------- Bottom nav ---------- */
+#nav{display:flex;border-top:1px solid var(--line);background:rgba(8,17,31,.95);padding-bottom:env(safe-area-inset-bottom,0)}
+#nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 8px;color:var(--mute);font-size:.7rem;position:relative}
+#nav button.on{color:var(--blue2)}
+#nav button.on::before{content:"";position:absolute;top:0;width:34px;height:3px;border-radius:0 0 4px 4px;background:var(--blue);box-shadow:var(--glow)}
+#nav .dot{position:absolute;top:5px;inset-inline-end:calc(50% - 18px);min-width:17px;height:17px;border-radius:9px;background:var(--blue);color:#fff;font-size:.62rem;display:grid;place-items:center;padding:0 4px}
+
+/* ---------- Chat ---------- */
+.msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;min-height:0;
+  background:radial-gradient(500px 300px at 20% 10%,rgba(31,107,255,.07),transparent 70%)}
+.b{max-width:78%;padding:8px 12px 6px;border-radius:14px;background:var(--card);border:1px solid var(--line);align-self:flex-end;font-size:.95rem;line-height:1.55;word-break:break-word;border-end-end-radius:4px}
+.b.me{align-self:flex-start;background:linear-gradient(135deg,#1c63f0,#0f3fae);border-color:rgba(120,180,255,.5);border-end-end-radius:14px;border-end-start-radius:4px;box-shadow:0 2px 14px rgba(31,107,255,.28)}
+.b .who{font-size:.76rem;font-weight:700;margin-bottom:1px}
+.b time{display:flex;justify-content:flex-end;gap:4px;font-size:.68rem;color:rgba(255,255,255,.55);margin-top:1px}
+.b.me time{color:rgba(255,255,255,.75)}
+.b .img{width:230px;max-width:100%;aspect-ratio:4/3;border-radius:10px;overflow:hidden;margin:2px 0 4px}
+.b .img svg{width:100%;height:100%;display:block}
+.voice{display:flex;align-items:center;gap:10px;min-width:210px}
+.voice .pl{width:38px;height:38px;border-radius:50%;background:var(--blue2);color:#04122e;display:grid;place-items:center;flex:none}
+.voice .wave{flex:1;height:26px;display:flex;align-items:center;gap:2px}
+.voice .wave i{width:3px;border-radius:2px;background:rgba(255,255,255,.55);height:30%}
+.voice.playing .wave i{animation:wv .8s ease-in-out infinite alternate;background:#fff}
+@keyframes wv{to{transform:scaleY(1.7)}}
+.file{display:flex;align-items:center;gap:10px;min-width:200px}
+.file .fi{width:38px;height:38px;border-radius:10px;background:rgba(74,163,255,.18);display:grid;place-items:center;color:var(--blue2)}
+.sysmsg{align-self:center;font-size:.76rem;color:var(--mute);background:rgba(12,26,51,.9);border:1px solid var(--line);border-radius:10px;padding:3px 12px}
+.pinned{display:flex;gap:8px;align-items:center;margin:8px 12px 0;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:.84rem}
+.pinned span{color:var(--mute)}
+.emo{display:flex;gap:4px;padding:6px 12px;border-top:1px solid var(--line);background:var(--bg2);overflow-x:auto}
+.emo button{font-size:1.5rem;padding:4px 8px;border-radius:10px}
+.emo button:hover{background:rgba(46,124,255,.15)}
+.composer{display:flex;align-items:center;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0));border-top:1px solid var(--line);background:var(--bg2)}
+.composer input{flex:1;min-width:0;height:44px;border-radius:22px;background:var(--card);border:1px solid var(--line);padding:0 16px}
+.composer input:focus{border-color:var(--blue2)}
+.fab{width:46px;height:46px;border-radius:50%;background:var(--blue);display:grid;place-items:center;box-shadow:var(--glow);flex:none}
+.flip{transform:scaleX(-1)}
+
+/* ---------- Forms / buttons ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:50px;border-radius:14px;font-weight:700;font-size:1rem}
+.btn.pri{background:linear-gradient(180deg,#2d7bff,#1559e0);box-shadow:var(--glow);border:1px solid rgba(140,190,255,.5)}
+.btn.pri:hover{filter:brightness(1.1)}
+.btn.out{border:1px solid var(--line2);background:rgba(12,26,51,.6)}
+.btn.out:hover{background:rgba(46,124,255,.14)}
+.btn.white{background:#fff;color:#1b2a4a;border:0}
+.btn.sm{height:34px;width:auto;padding:0 16px;font-size:.84rem;border-radius:10px}
+.btn.danger{border:1px solid rgba(255,90,106,.5);color:var(--danger);background:rgba(255,90,106,.08)}
+.field{display:flex;align-items:center;gap:10px;height:52px;border-radius:14px;background:var(--card);border:1px solid var(--line);padding:0 14px;color:var(--mute)}
+.field:focus-within{border-color:var(--blue2);box-shadow:var(--glow)}
+.field input,.field textarea{flex:1;background:none;border:0;min-width:0;color:var(--text)}
+.field.ta{height:auto;padding:10px 14px;align-items:flex-start}
+.field.ta textarea{resize:none;height:74px}
+.lbl{font-size:.84rem;color:var(--mute);margin:12px 4px 6px;display:block}
+.link{color:var(--blue2);font-weight:600}
+.err{color:var(--danger);font-size:.84rem;min-height:1.2em;margin:6px 4px}
+
+/* ---------- Auth ---------- */
+#auth{position:fixed;inset:0;z-index:40;display:flex;justify-content:center;overflow-y:auto;background:
+  radial-gradient(700px 500px at 50% -10%,rgba(31,107,255,.30),transparent 65%),var(--bg)}
+.auth-in{width:100%;max-width:420px;padding:calc(36px + env(safe-area-inset-top,0)) 24px 28px;display:flex;flex-direction:column;gap:14px;min-height:100%}
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;margin:6px 0 14px}
+.hero h1{font-size:2.1rem;letter-spacing:.14em;font-weight:800;line-height:1.1}
+.hero h2{font-size:1.5rem;color:var(--blue2);font-weight:700;line-height:1}
+.hero p{color:var(--mute);margin-top:4px}
+.sep{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:.85rem}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--line)}
+.avpick{align-self:center;position:relative;width:120px;height:120px;border-radius:50%;border:2px solid var(--blue2);display:grid;place-items:center;background:var(--card);box-shadow:var(--glow);margin:8px 0}
+.avpick svg{width:64px;height:64px;fill:none;stroke:var(--blue2);stroke-width:1.6}
+.avpick .cam{position:absolute;bottom:2px;inset-inline-end:2px;width:34px;height:34px;border-radius:50%;background:var(--blue);display:grid;place-items:center;border:3px solid var(--bg)}
+.avpick.has{font-size:3rem;font-weight:800}
+
+/* ---------- Splash ---------- */
+#splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+  background:radial-gradient(600px 500px at 50% 35%,rgba(31,107,255,.35),transparent 65%),var(--bg);transition:opacity .5s}
+#splash h1{font-size:2.4rem;letter-spacing:.16em;font-weight:800;margin-top:8px}
+#splash h2{font-size:1.7rem;color:var(--blue2);font-weight:700;line-height:1}
+#splash p{color:var(--mute);margin-top:18px;line-height:1.7}
+#splash .pb{width:130px;height:4px;border-radius:2px;background:rgba(46,124,255,.2);margin-top:28px;overflow:hidden}
+#splash .pb i{display:block;height:100%;width:0;background:var(--blue);box-shadow:var(--glow);animation:load 1.7s ease-in-out forwards}
+@keyframes load{to{width:100%}}
+#splash .logo{animation:pop .9s ease-out}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- Status ---------- */
+.stories{display:flex;gap:14px;padding:14px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.stories button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.78rem;color:var(--mute);flex:none;width:64px}
+.mine{position:relative}
+.mine .plus{position:absolute;bottom:14px;inset-inline-start:2px;width:22px;height:22px;border-radius:50%;background:var(--blue);display:grid;place-items:center;border:2px solid var(--bg);font-weight:800;font-size:.9rem;line-height:1}
+.post{margin:14px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card)}
+.post .ph{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.post .ph div{flex:1;line-height:1.3}
+.post .ph small{display:block;color:var(--mute);font-size:.74rem}
+.post .im{aspect-ratio:3/4;max-height:420px;width:100%}
+.post .im svg{width:100%;height:100%;display:block}
+.post .rp{display:flex;gap:8px;padding:10px;align-items:center}
+.post .rp input{flex:1;height:40px;border-radius:20px;background:var(--bg2);border:1px solid var(--line);padding:0 14px;min-width:0}
+.viewer{background:#000;z-index:50}
+.viewer .vi{position:absolute;inset:0}
+.viewer .vi svg{width:100%;height:100%;display:block}
+.viewer .top{position:relative;z-index:2;padding:14px 12px;background:linear-gradient(#000a,transparent)}
+.prog{display:flex;gap:4px;margin-bottom:10px}
+.prog i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
+.prog i b{display:block;height:100%;width:0;background:#fff}
+.prog i.done b{width:100%}
+.prog i.run b{animation:fill 5s linear forwards}
+@keyframes fill{to{width:100%}}
+.viewer .cap{position:relative;z-index:2;margin-top:auto;padding:30px 16px 14px;background:linear-gradient(transparent,#000c);font-size:1.05rem}
+.viewer .rpl{position:relative;z-index:2;display:flex;gap:8px;padding:0 12px calc(14px + env(safe-area-inset-bottom,0))}
+.viewer .rpl input{flex:1;height:44px;border-radius:22px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.4);padding:0 16px;color:#fff}
+
+/* ---------- Channels ---------- */
+.seg{display:flex;margin:0 12px 6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;height:34px;border-radius:9px;color:var(--mute);font-weight:600}
+.seg button.on{background:var(--blue);color:#fff;box-shadow:var(--glow)}
+.cpost{align-self:stretch;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;line-height:1.7}
+.cpost time{display:block;color:var(--mute);font-size:.72rem;margin-top:6px}
+
+/* ---------- Settings / Admin ---------- */
+.prof{display:flex;align-items:center;gap:14px;margin:14px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.prof .t{flex:1;line-height:1.35}
+.prof small{color:var(--blue2)}
+.setrow{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 0;padding:14px 16px;border-bottom:1px solid rgba(46,124,255,.10);text-align:start}
+.setrow:hover{background:rgba(46,124,255,.08)}
+.setrow .l{flex:1}
+.setrow .v{color:var(--mute);font-size:.84rem}
+.setrow .chev{color:var(--mute)}
+.tg{width:46px;height:26px;border-radius:13px;background:#1b2a48;position:relative;flex:none;transition:.2s}
+.tg::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.tg.on{background:var(--blue);box-shadow:var(--glow)}
+.tg.on::after{inset-inline-start:23px}
+.ver{text-align:center;color:var(--mute);font-size:.78rem;padding:18px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 14px}
+.stat div{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stat b{display:block;font-size:1.5rem;color:var(--blue2)}
+.stat span{font-size:.78rem;color:var(--mute)}
+.panel{background:rgba(12,26,51,.55);border-bottom:1px solid var(--line);padding:6px 0}
+.urow{display:flex;align-items:center;gap:10px;padding:8px 16px}
+.urow .n{flex:1;line-height:1.3}
+.urow small{color:var(--mute);display:block}
+.pad{padding:8px 16px 12px}
+.crown{color:#f5c451}
+
+/* ---------- Modal / toast ---------- */
+#modal{position:fixed;inset:0;z-index:80;background:rgba(0,4,12,.7);display:grid;place-items:center;padding:20px;backdrop-filter:blur(4px)}
+#modal .box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:20px;box-shadow:var(--glow);display:flex;flex-direction:column;gap:12px}
+#modal .acts{display:flex;gap:10px}
+#toast{position:fixed;bottom:90px;left:50%;transform:translate(-50%,20px);background:var(--card2);border:1px solid var(--line2);padding:10px 18px;border-radius:12px;font-size:.88rem;z-index:90;opacity:0;pointer-events:none;transition:.25s;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+.av{overflow:hidden}.av img{width:100%;height:100%;object-fit:cover;display:block}
+#main{position:relative}
+.newfab{position:absolute;inset-inline-start:16px;bottom:78px;width:56px;height:56px;border-radius:18px;background:linear-gradient(180deg,#2d7bff,#1559e0);display:grid;place-items:center;box-shadow:var(--glow);z-index:5;border:1px solid rgba(140,190,255,.5)}
+.newfab svg{width:26px;height:26px}
+.hdinfo{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:start}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;flex:none}
+.chk.on{background:var(--blue);border-color:var(--blue)}.chk svg{width:14px;height:14px}
+.rec{flex:1;display:flex;align-items:center;gap:10px;height:44px;border-radius:22px;background:var(--card);border:1px solid var(--line);padding:0 16px;color:var(--mute)}
+.rec b{color:var(--text)}
+.rd{width:10px;height:10px;border-radius:50%;background:var(--danger);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+.sbg{width:100%;height:100%;display:grid;place-items:center;padding:24px;text-align:center;font-weight:700;font-size:1.5rem;line-height:1.5;color:#fff}
+.sbg p{word-break:break-word}
+#lb{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.92);display:grid;place-items:center;padding:12px}
+#lb img{max-width:100%;max-height:100%;border-radius:8px}
+.b .img{background:none;border:0;padding:0}
+</style>
+</head>
+<body>
+
+<!-- shared gradient for logo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff"/><stop offset=".45" stop-color="#2a7bff"/><stop offset="1" stop-color="#0b3fb8"/></linearGradient>
+</defs></svg>
+
+<div id="splash"></div>
+
+<div id="app" hidden>
+  <section id="main"></section>
+  <div id="empty"></div>
+  <div id="ov" class="screen pane" hidden></div>
+</div>
+<div id="auth" hidden></div>
+<div id="modal" hidden></div>
+<div id="toast" role="status"></div>
+<div id="lb" hidden></div>
+<input type="file" id="fpick" hidden>
+
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, sendPasswordResetEmail, updateProfile} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, orderBy, limit, limitToLast, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, getDocs, runTransaction, getCountFromServer} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* =====================================================================
+   DAMA WhatsApp — تطبيق مراسلة حقيقي (Firebase Auth + Firestore)
+   الصق إعدادات مشروعك هنا (Firebase Console > Project settings > Your apps > Web)
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyAgV7EcOrGqAdiu-GYh7phQ8VOtHGocGTs',
+  authDomain: 'dama-e4b5f.firebaseapp.com',
+  projectId: 'dama-e4b5f',
+  storageBucket: 'dama-e4b5f.firebasestorage.app',
+  messagingSenderId: '954846167872',
+  appId: '1:954846167872:web:a778412b66bad50db530a5'
+};
+const CONFIGURED = !String(FIREBASE_CONFIG.apiKey).startsWith('PASTE');
+
+const $ = (s, e = document) => e.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ms = t => t && t.toMillis ? t.toMillis() : (typeof t === 'number' ? t : 0);
+const fmtT = t => new Date(t).toLocaleTimeString('ar-EG', {hour: 'numeric', minute: '2-digit'});
+const fmtDay = t => { const d = new Date(t), n = new Date(), y = new Date(); y.setDate(n.getDate() - 1);
+  if (d.toDateString() === n.toDateString()) return 'اليوم'; if (d.toDateString() === y.toDateString()) return 'أمس';
+  return d.toLocaleDateString('ar-EG', {day: 'numeric', month: 'long'}); };
+const fmtList = t => { if (!t) return ''; const d = new Date(t); if (d.toDateString() === new Date().toDateString()) return fmtT(t);
+  const f = fmtDay(t); return f === 'أمس' ? f : d.toLocaleDateString('ar-EG', {day: 'numeric', month: 'numeric'}); };
+const fmtDur = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const sleep = n => new Promise(r => setTimeout(r, n));
+
+/* ---------- icons ---------- */
+const P = {
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  status:'<circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/><circle cx="12" cy="12" r="3.5"/>',
+  group:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.5 0 4.5 2 4.5 4.5"/>',
+  channel:'<path d="M3 11v3l12 5V6L3 11z"/><path d="M18 9a4 4 0 0 1 0 6"/><path d="M6 15v4"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  back:'<path d="M9 5l7 7-7 7"/>',
+  send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.5-4.5"/>',
+  dots:'<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  smile:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14a4 4 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+  bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21h4"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  code:'<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/>',
+  logout:'<path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/>',
+  play:'<path d="M8 5l11 7-11 7z" fill="currentColor"/>',
+  pause:'<path d="M8 5v14M16 5v14" stroke-width="3"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+  chk:'<path d="M5 12l5 5L20 7"/>',
+  chk2:'<path d="M2 12l5 5L17 7M12 16l1 1L22 7"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  verified:'<path d="M12 2l2.4 2 3.1-.3.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.3L12 22l-2.4-2-3.1.3-.9-3L3.4 15.7l1-3-1-3L6.1 8l.9-3 3.1.3z" fill="currentColor" stroke="none"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#04122e" stroke-width="2"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+};
+const ic = n => `<svg class="i" viewBox="0 0 24 24">${P[n] || ''}</svg>`;
+const icf = n => ic(n).replace('class="i"', 'class="i flip"');
+const ics = (n, st) => ic(n).replace('class="i"', `class="i" style="${st}"`);
+const logo = s => `<svg width="${s}" height="${s}" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 36 L35 13 L48 25 L60 6 L72 25 L85 13 L90 36 Z" fill="url(#lg)"/><circle cx="60" cy="74" r="38" fill="none" stroke="url(#lg)" stroke-width="5"/><text x="60" y="93" text-anchor="middle" font-size="56" font-weight="800" fill="url(#lg)" font-family="Cairo,Arial,sans-serif">D</text></svg>`;
+
+const COLORS = ['#2a6df4','#7a3bd6','#0e9aa7','#d6573b','#2f9e5f','#c43b8a','#c08a1e'];
+const colorOf = n => COLORS[[...String(n || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
+const av = (name, color, s = 46, on = false, photo = null) =>
+  `<div class="av" style="--s:${s}px;background:linear-gradient(135deg,${color || colorOf(name)},#0a1a3d)">${photo ? `<img src="${esc(photo)}" alt="">` : esc(String(name || 'D').trim()[0] || 'D')}${on ? '<i class="on"></i>' : ''}</div>`;
+const BGS = ['linear-gradient(160deg,#0b1b4a,#1f6bff)','linear-gradient(160deg,#3b0b4a,#c43b8a)','linear-gradient(160deg,#06302e,#2f9e5f)','linear-gradient(160deg,#4a1d0b,#f08a3c)'];
+const storyArt = s => s.img ? `<img src="${esc(s.img)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+  : `<div class="sbg" style="background:${BGS[s.bg || 0]}"><p>${esc(s.text)}</p></div>`;
+
+/* ---------- state ---------- */
+let app, auth, db;
+let uid = null, me = null, isAdmin = false;
+let chats = [], chanList = [], stories = [];
+const ucache = new Map(), pend = new Set();
+let unsubs = [], hbTimer = null, firstChats = true;
+let tab = 'chats', q = '', searching = false, chanTab = 'discover';
+let cur = null, curKind = null, ovBack = null;
+let msgs = [], firstLoad = true, unsubMsgs = null, unsubPeer = null, unsubPosts = null;
+let readSig = '', lastMarkAt = 0, lastTyp = 0, typTimer = null;
+let tmpUser = {}, pickMode = '';
+let seen = new Set(JSON.parse(localStorage.getItem('dama_seen') || '[]'));
+let notifOn = localStorage.getItem('dama_notif') !== '0';
+const getU = id => ucache.get(id) || {id, name: 'مستخدم'};
+const curChat = () => chats.find(c => c.id === cur);
+const otherOf = c => c.members.find(m => m !== uid);
+const chatName = c => c.type === 'group' ? c.name : getU(otherOf(c)).name;
+
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600); }
+function modal(title, opts, cb) {
+  const m = $('#modal'); m.hidden = false;
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true"><b style="font-size:1.1rem">${esc(title)}</b>
+    ${opts.noinput ? `<p style="color:var(--mute);line-height:1.7">${esc(opts.msg || '')}</p>` : `<div class="field"><input id="mi" type="${opts.type || 'text'}" placeholder="${esc(opts.ph || '')}" value="${esc(opts.val || '')}" maxlength="${opts.max || 60}" autocomplete="off"></div>`}
+    <div class="err" id="me"></div>
+    <div class="acts"><button class="btn out" data-a="mx">إلغاء</button><button class="btn ${opts.danger ? 'danger' : 'pri'}" data-a="mok">${esc(opts.ok || 'تأكيد')}</button></div></div>`;
+  const i = $('#mi'); if (i) i.focus();
+  const ok = async () => { const r = await cb(i ? i.value.trim() : ''); if (r === false) return; m.hidden = true; m.innerHTML = ''; };
+  m._ok = ok;
+  if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+}
+const confirmBox = (title, msg, ok, cb) => modal(title, {noinput: true, msg, ok, danger: true}, cb);
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+let splashP = null;
+function hideSplash() {
+  if (!splashP) splashP = new Promise(r => setTimeout(() => {
+    const s = $('#splash'); if (!s) return r();
+    s.style.opacity = 0; setTimeout(() => { s.remove(); r(); }, 500);
+  }, Math.max(0, 1500 - performance.now())));
+  return splashP;
+}
+function drawSplash() {
+  $('#splash').innerHTML = `<div class="logo">${logo(130)}</div><h1>DAMA</h1><h2>WhatsApp</h2><p>تواصل بلا حدود<br>أكثر من مجرد رسالة!</p><div class="pb"><i></i></div>`;
+}
+function init() {
+  drawSplash();
+  if (!CONFIGURED) { hideSplash().then(setupScreen); return; }
+  app = initializeApp(FIREBASE_CONFIG);
+  auth = getAuth(app); auth.languageCode = 'ar';
+  db = initializeFirestore(app, {localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})});
+  onAuthStateChanged(auth, onAuth);
+}
+function setupScreen() {
+  const a = $('#auth'); a.hidden = false;
+  a.innerHTML = `<div class="auth-in"><div class="hero">${logo(90)}<h1>DAMA</h1><h2>إعداد Firebase</h2><p>التطبيق جاهز، ناقص ربطه بمشروعك.</p></div>
+    <div class="panel" style="padding:14px 16px;border:1px solid var(--line);border-radius:16px;line-height:2">
+    ١) افتح Firebase Console وأنشئ تطبيق ويب<br>٢) انسخ الإعدادات (apiKey و appId)<br>٣) الصقها في أعلى الملف بدل PASTE_...<br>٤) فعّل Authentication (Email + Google) و Firestore<br>٥) انشر ملف firestore.rules<br><br><b>التفاصيل الكاملة في README.md</b></div></div>`;
+}
+async function onAuth(u) {
+  teardown();
+  if (!u) { uid = null; me = null; await hideSplash(); return authView('welcome'); }
+  uid = u.uid;
+  try {
+    const s = await getDoc(doc(db, 'users', uid));
+    await hideSplash();
+    if (!s.exists()) { tmpUser = {name: u.displayName || '', photo: null}; return authView('profile'); }
+    me = {id: uid, ...s.data()}; ucache.set(uid, me);
+    startApp();
+  } catch (e) { await hideSplash(); authView('welcome'); toast('تعذر الاتصال: ' + (e.code || e.message)); }
+}
+function teardown() {
+  unsubs.forEach(f => { try { f(); } catch (e) {} }); unsubs = [];
+  clearInterval(hbTimer); closeOvQuiet();
+  chats = []; chanList = []; stories = []; firstChats = true; isAdmin = false;
+  $('#app').hidden = true;
+}
+function startApp() {
+  $('#auth').hidden = true; $('#app').hidden = false;
+  $('#empty').innerHTML = `${logo(120)}<h2 style="color:var(--text);letter-spacing:.14em">DAMA</h2><p>اختر محادثة لبدء التواصل<br><small>رسائلك محمية بقواعد أمان على الخادم</small></p>`;
+  getDoc(doc(db, 'admins', uid)).then(s => { isAdmin = s.exists(); if (tab === 'settings') renderTab(); }).catch(() => {});
+  unsubs.push(onSnapshot(doc(db, 'users', uid), s => { if (s.exists()) { me = {id: uid, ...s.data()}; ucache.set(uid, me); if (me.banned) bannedScreen(); } }, console.error));
+  unsubs.push(onSnapshot(query(collection(db, 'chats'), where('members', 'array-contains', uid)), onChats, e => toast('خطأ في تحميل المحادثات: ' + e.code)));
+  unsubs.push(onSnapshot(query(collection(db, 'channels'), limit(100)), s => { chanList = s.docs.map(d => ({id: d.id, ...d.data()})); if (tab === 'channels' || tab === 'chats') renderTab(); }, console.error));
+  unsubs.push(onSnapshot(query(collection(db, 'stories'), where('exp', '>', Date.now()), limit(100)), s => { stories = s.docs.map(d => ({id: d.id, ...d.data({serverTimestamps: 'estimate'})})).sort((a, b) => ms(a.ts) - ms(b.ts)); if (tab === 'status') renderTab(); }, console.error));
+  beat(); hbTimer = setInterval(beat, 50000);
+  renderMain();
+}
+const beat = () => { if (uid && !document.hidden) updateDoc(doc(db, 'users', uid), {lastSeen: serverTimestamp()}).catch(() => {}); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { beat(); markRead(); } });
+function bannedScreen() {
+  const a = $('#auth'); a.hidden = false;
+  a.innerHTML = `<div class="auth-in"><div class="hero">${logo(90)}<h2 style="color:var(--danger)">تم حظر حسابك</h2><p>تواصل مع إدارة داما إذا كان هذا خطأ.</p></div><button class="btn out" data-a="logout">تسجيل الخروج</button></div>`;
+}
+
+/* =====================================================================
+   AUTH
+   ===================================================================== */
+const AE = {'auth/invalid-email':'البريد الإلكتروني غير صحيح','auth/user-not-found':'لا يوجد حساب بهذا البريد','auth/wrong-password':'كلمة السر غير صحيحة','auth/invalid-credential':'البريد أو كلمة السر غير صحيحة','auth/email-already-in-use':'هذا البريد مسجل بالفعل','auth/weak-password':'كلمة السر ضعيفة (٦ أحرف على الأقل)','auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً','auth/network-request-failed':'تحقق من اتصال الإنترنت','auth/popup-closed-by-user':'تم إلغاء تسجيل الدخول','auth/unauthorized-domain':'أضف نطاق موقعك في Firebase > Authentication > Authorized domains','auth/operation-not-allowed':'فعّل هذه الطريقة من Firebase > Authentication'};
+const authMsg = e => AE[e.code] || ('خطأ: ' + (e.code || e.message));
+const okEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const setAuthErr = m => { const e = $('#ae'); if (e) e.textContent = m; };
+const busy = (b, on) => { if (b) { b.disabled = on; b.style.opacity = on ? .6 : 1; } };
+
+function authView(v) {
+  const a = $('#auth'); a.hidden = false; $('#app').hidden = true;
+  const head = (t, sub, back = true) => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">${back ? `<button class="ib" data-a="auth" data-v="welcome" aria-label="رجوع">${ic('back')}</button>` : ''}<div><h3 style="font-size:1.5rem">${t}</h3><p style="color:var(--mute);font-size:.9rem">${sub}</p></div></div>`;
+  let h = '';
+  if (v === 'welcome') h = `
+    <div class="hero">${logo(110)}<h1>DAMA</h1><h2>WhatsApp</h2><p style="color:var(--text);font-size:1.15rem;font-weight:600">مرحباً بك في داما واتساب</p><p>تواصل · شارك · اكتشف عالمك</p></div>
+    <button class="btn white" data-a="google"><svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>المتابعة بواسطة Google</button>
+    <div class="sep">أو</div>
+    <button class="btn out" data-a="auth" data-v="login">${ic('mail')} تسجيل الدخول بالبريد الإلكتروني</button>
+    <p style="text-align:center;color:var(--mute);font-size:.9rem;margin-top:4px">ليس لديك حساب؟ <button class="link" data-a="auth" data-v="signup">إنشاء حساب جديد</button></p>
+    <div class="err" id="ae" style="text-align:center"></div>`;
+  if (v === 'login') h = head('تسجيل الدخول', 'أهلاً بعودتك إلى داما') + `
+    <div class="field">${ic('mail')}<input id="em" type="email" placeholder="البريد الإلكتروني" autocomplete="email" dir="ltr" style="text-align:start"></div>
+    <div class="field">${ic('lock')}<input id="pw" type="password" placeholder="كلمة السر" autocomplete="current-password"></div>
+    <div class="err" id="ae"></div>
+    <button class="btn pri" data-a="login">تسجيل الدخول</button>
+    <button class="link" data-a="forgot" style="text-align:center">نسيت كلمة السر؟</button>
+    <p style="text-align:center;color:var(--mute);font-size:.9rem">ليس لديك حساب؟ <button class="link" data-a="auth" data-v="signup">إنشاء حساب جديد</button></p>`;
+  if (v === 'signup') h = head('إنشاء حساب جديد', 'ابدأ رحلتك معنا الآن') + `
+    <div class="field">${ic('user')}<input id="nm" placeholder="الاسم الكامل" autocomplete="name" maxlength="40"></div>
+    <div class="field">${ic('mail')}<input id="em" type="email" placeholder="البريد الإلكتروني" autocomplete="email" dir="ltr" style="text-align:start"></div>
+    <div class="field">${ic('lock')}<input id="pw" type="password" placeholder="كلمة سر (٦ أحرف على الأقل)" autocomplete="new-password"></div>
+    <div class="err" id="ae"></div>
+    <button class="btn pri" data-a="signup">إنشاء حساب</button>
+    <p style="text-align:center;color:var(--mute);font-size:.9rem">لديك حساب بالفعل؟ <button class="link" data-a="auth" data-v="login">تسجيل الدخول</button></p>`;
+  if (v === 'profile') h = head('إعداد الملف الشخصي', 'أخبرنا عن نفسك', false) + `
+    <button class="avpick has" data-a="pickavatar" style="color:var(--blue2);overflow:hidden" aria-label="صورة الملف">${tmpUser.photo ? `<img src="${esc(tmpUser.photo)}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc((tmpUser.name || 'D').trim()[0] || 'D')}<span class="cam">${ic('cam')}</span></button>
+    <label class="lbl" for="nm">الاسم</label>
+    <div class="field">${ic('user')}<input id="nm" value="${esc(tmpUser.name || '')}" maxlength="40" autocomplete="name"></div>
+    <label class="lbl" for="un">اسم المستخدم (يستخدمه أصدقاؤك للعثور عليك)</label>
+    <div class="field"><span>@</span><input id="un" placeholder="dama" autocomplete="off" dir="ltr" style="text-align:start" maxlength="24"></div>
+    <label class="lbl" for="bio">النبذة</label>
+    <div class="field ta"><textarea id="bio" placeholder="اكتب نبذة قصيرة عنك..." maxlength="120"></textarea></div>
+    <div class="err" id="ae"></div>
+    <button class="btn pri" data-a="finish" style="margin-top:auto">حفظ والبدء</button>
+    <button class="link" data-a="logout" style="text-align:center">استخدام حساب آخر</button>`;
+  a.innerHTML = `<div class="auth-in">${h}</div>`;
+  const f = a.querySelector('input'); if (f && v !== 'welcome') setTimeout(() => f.focus(), 50);
+  a.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { const b = a.querySelector('.btn.pri'); b && b.click(); } }));
+}
+async function googleSignIn(btn) {
+  busy(btn, true);
+  const p = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, p); }
+  catch (e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { try { await signInWithRedirect(auth, p); return; } catch (x) { e = x; } }
+    setAuthErr(authMsg(e));
+  } finally { busy(btn, false); }
+}
+async function saveProfile({name, handle, bio, photo}, isNew) {
+  handle = handle.toLowerCase();
+  await runTransaction(db, async tx => {
+    const hr = doc(db, 'handles', handle), hs = await tx.get(hr);
+    if (hs.exists() && hs.data().uid !== uid) throw new Error('taken');
+    const old = me && me.handle;
+    if (!hs.exists()) tx.set(hr, {uid});
+    if (old && old !== handle) tx.delete(doc(db, 'handles', old));
+    const data = {name, nameL: name.toLowerCase(), handle, bio, photo: photo || null};
+    if (isNew) tx.set(doc(db, 'users', uid), {...data, banned: false, createdAt: serverTimestamp(), lastSeen: serverTimestamp()});
+    else tx.update(doc(db, 'users', uid), data);
+  });
+}
+
+/* =====================================================================
+   MAIN SHELL
+   ===================================================================== */
+const TABS = [['chats','الدردشات','chat'], ['status','الستوري','status'], ['groups','المجموعات','group'], ['channels','القنوات','channel'], ['settings','الإعدادات','settings']];
+const totalUnread = () => chats.reduce((a, c) => a + ((c.unread && c.unread[uid]) || 0), 0);
+function navHTML() {
+  const un = totalUnread();
+  return TABS.map(([k, l, i]) => `<button class="${tab === k ? 'on' : ''}" data-a="tab" data-v="${k}">${ic(i)}<span>${l}</span>${k === 'chats' && un ? `<i class="dot">${un > 99 ? '99+' : un}</i>` : ''}</button>`).join('');
+}
+function updateBadge() { const n = $('#nav'); if (n) n.innerHTML = navHTML(); const un = totalUnread(); document.title = (un ? `(${un}) ` : '') + 'DAMA WhatsApp — داما'; }
+
+function renderMain() {
+  const title = {chats:'', status:'الستوري', groups:'المجموعات', channels:'القنوات', settings:'الإعدادات'}[tab];
+  const bar = tab === 'chats' ? `<div class="brand">${logo(40)}<div><b>DAMA</b><small>WhatsApp</small></div></div>` : `<div class="ttl" style="flex:1"><b style="font-size:1.2rem">${title}</b></div>`;
+  $('#main').innerHTML = `
+    <header class="bar">${bar}
+      ${['chats','groups','channels'].includes(tab) ? `<button class="ib" data-a="srch" aria-label="بحث">${ic('search')}</button>` : ''}
+      ${tab === 'status' ? `<button class="ib" data-a="mystory" aria-label="قصة جديدة">${ic('cam')}</button>` : ''}
+    </header>
+    <div id="srchwrap" ${searching ? '' : 'hidden'}><div class="search">${ic('search')}<input id="q" placeholder="ابحث..." value="${esc(q)}"></div></div>
+    <div class="scroll" id="tab"></div>
+    ${tab === 'chats' ? `<button class="newfab" data-a="newchat" aria-label="محادثة جديدة">${ic('plus')}</button>` : ''}
+    <nav id="nav">${navHTML()}</nav>`;
+  const qi = $('#q'); if (qi) { qi.addEventListener('input', e => { q = e.target.value.trim(); renderTab(); }); if (searching) qi.focus(); }
+  renderTab(); updateBadge();
+}
+const visible = c => c.lastFrom || c.createdBy === uid;
+const sorted = () => chats.filter(visible).sort((a, b) => ms(b.lastTs) - ms(a.lastTs));
+const lastPrev = c => c.lastFrom ? (c.lastFrom === uid ? 'أنت: ' : (c.type === 'group' && c.lastName ? c.lastName + ': ' : '')) + c.lastText : 'ابدأ المحادثة';
+
+function rowConv(c) {
+  const g = c.type === 'group', name = chatName(c), o = g ? null : getU(otherOf(c));
+  const un = (c.unread && c.unread[uid]) || 0;
+  return `<button class="row ${cur === c.id ? 'active' : ''}" data-a="chat" data-id="${c.id}">${g ? av(name, colorOf(name), 48) : av(o.name, colorOf(o.name), 48, false, o.photo)}
+    <div class="mid"><b>${esc(name)}</b><span>${esc(lastPrev(c))}</span></div>
+    <div class="meta"><time>${fmtList(ms(c.lastTs))}</time>${un ? `<i class="badge">${un > 99 ? '99+' : un}</i>` : ''}</div></button>`;
+}
+const fq = s => !q || String(s).toLowerCase().includes(q.toLowerCase());
+function renderTab() {
+  const el = $('#tab'); if (!el) return;
+  let h = '';
+  if (tab === 'chats') {
+    const fol = chanList.filter(c => c.followers && c.followers.includes(uid) && fq(c.name));
+    h += fol.map(c => `<button class="row" data-a="chan" data-id="${c.id}"><div class="av" style="--s:48px;background:linear-gradient(135deg,#1f6bff,#0a1a3d)">${ic('channel')}</div><div class="mid"><b>${esc(c.name)} ${c.verified ? `<span class="vf">${ic('verified')}</span>` : ''}</b><span>${esc(c.lastText || 'قناة')}</span></div></button>`).join('');
+    const list = sorted().filter(c => fq(chatName(c)));
+    h += list.map(rowConv).join('');
+    if (!list.length && !fol.length) h = `<div class="empty-note">${q ? 'لا توجد نتائج' : 'لا توجد محادثات بعد<br>اضغط + لبدء محادثة جديدة'}</div>`;
+  }
+  if (tab === 'status') {
+    const live = stories.filter(s => s.exp > Date.now());
+    const mine = live.filter(s => s.uid === uid);
+    const others = [...new Map(live.filter(s => s.uid !== uid).map(s => [s.uid, s])).values()];
+    h += `<div class="stories"><button data-a="${mine.length ? 'story' : 'mystory'}" data-id="${mine[0] ? mine[0].id : ''}" class="mine"><span class="ringwrap ${mine.length ? '' : 'seen'}">${av(me.name, '#1f6bff', 54, false, me.photo)}</span><i class="plus" data-a="mystory">+</i><span>قصتي</span></button>
+      ${others.map(s => `<button data-a="story" data-id="${s.id}"><span class="ringwrap ${live.filter(x => x.uid === s.uid).every(x => seen.has(x.id)) ? 'seen' : ''}">${av(s.name, colorOf(s.name), 54, false, getU(s.uid).photo)}</span><span>${esc(s.name)}</span></button>`).join('')}</div>`;
+    h += [...live].reverse().map(s => `<article class="post"><div class="ph">${av(s.name, colorOf(s.name), 40, false, getU(s.uid).photo)}<div><b>${esc(s.uid === uid ? 'قصتي' : s.name)}</b><small>${fmtList(ms(s.ts))} ${fmtT(ms(s.ts))}</small></div></div>
+      <button class="im" data-a="story" data-id="${s.id}" style="display:block" aria-label="عرض القصة">${storyArt(s)}</button>
+      ${s.uid !== uid ? `<div class="rp"><input data-r="${s.id}" placeholder="رد على ${esc(s.name)}..."><button class="fab" style="width:40px;height:40px" data-a="sreply" data-id="${s.id}" aria-label="إرسال">${icf('send')}</button></div>` : ''}</article>`).join('') || `<div class="empty-note">لا توجد قصص نشطة<br>انشر أول قصة لك بالضغط على الكاميرا</div>`;
+  }
+  if (tab === 'groups') {
+    const gs = sorted().filter(c => c.type === 'group' && fq(c.name));
+    h += `<button class="row" data-a="newgroup"><div class="av" style="--s:46px;background:var(--blue)">${ic('plus')}</div><div class="mid"><b>إنشاء مجموعة جديدة</b><span>أضف أصدقاءك وابدأ المحادثة</span></div></button>`;
+    h += gs.map(rowConv).join('') || `<div class="empty-note">لا توجد مجموعات</div>`;
+  }
+  if (tab === 'channels') {
+    h += `<button class="row" data-a="newchan"><div class="av" style="--s:46px;background:var(--blue)">${ic('plus')}</div><div class="mid"><b>إنشاء قناة</b><span>انشر للمتابعين، والقراءة فقط لهم</span></div></button>`;
+    h += `<div class="seg" style="margin-top:8px"><button class="${chanTab === 'discover' ? 'on' : ''}" data-a="ctab" data-v="discover">اكتشف</button><button class="${chanTab === 'following' ? 'on' : ''}" data-a="ctab" data-v="following">تابع</button></div>`;
+    const cs = chanList.filter(c => fq(c.name) && (chanTab === 'discover' || (c.followers || []).includes(uid)));
+    h += cs.map(c => { const f = (c.followers || []).includes(uid); return `<div class="row" data-a="chan" data-id="${c.id}" role="button" tabindex="0"><div class="av" style="--s:46px;background:linear-gradient(135deg,${colorOf(c.name)},#0a1a3d)">${esc(c.name[0])}</div>
+      <div class="mid"><b>${esc(c.name)} ${c.verified ? `<span class="vf">${ic('verified')}</span>` : ''}</b><span>${(c.followers || []).length} مشترك</span></div>
+      <button class="btn sm ${f ? 'out' : 'pri'}" data-a="follow" data-id="${c.id}">${f ? 'متابَع' : 'متابعة'}</button></div>`; }).join('') || `<div class="empty-note">${chanTab === 'following' ? 'لم تتابع أي قناة بعد' : 'لا توجد قنوات'}</div>`;
+  }
+  if (tab === 'settings') {
+    const row = (i, l, a, v) => `<button class="setrow" data-a="${a}">${ic(i)}<span class="l">${l}</span>${v ? `<span class="v">${v}</span>` : ''}<span class="chev">${icf('back').replace('class="i flip"', 'class="i" style="width:16px;height:16px;transform:scaleX(-1)"')}</span></button>`;
+    h += `<div class="prof">${av(me.name, '#1f6bff', 64, false, me.photo)}<div class="t"><b style="font-size:1.1rem">${esc(me.name)}</b><br><small dir="ltr">@${esc(me.handle)}</small><div style="color:var(--mute);font-size:.82rem">${esc(me.bio || '')}</div></div><button class="ib" data-a="editprof" aria-label="تعديل">${ic('edit')}</button></div>`;
+    h += row('user', 'الحساب والملف الشخصي', 'editprof') +
+      `<button class="setrow" data-a="tgnotif">${ic('bell')}<span class="l">إشعارات الرسائل</span><span class="tg ${notifOn ? 'on' : ''}"></span></button>` +
+      (isAdmin ? row('code', 'لوحة المطور', 'admin') : '') +
+      `<button class="setrow" data-a="logout" style="color:var(--danger)">${ic('logout')}<span class="l">تسجيل الخروج</span></button><div class="ver">الإصدار 2.0.0</div>`;
+  }
+  el.innerHTML = h;
+}
+
+/* =====================================================================
+   CHATS
+   ===================================================================== */
+function onChats(s) {
+  if (!firstChats) s.docChanges().forEach(ch => {
+    if (ch.type === 'removed' || ch.doc.metadata.hasPendingWrites) return;
+    const d = ch.doc.data(), old = chats.find(c => c.id === ch.doc.id);
+    if (d.lastFrom && d.lastFrom !== uid && (!old || ms(old.lastTs) !== ms(d.lastTs))) notify(ch.doc.id, d);
+  });
+  firstChats = false;
+  chats = s.docs.map(d => ({id: d.id, ...d.data({serverTimestamps: 'estimate'})}));
+  chats.forEach(c => c.members.forEach(fetchUser));
+  if (curKind === 'chat' && cur) chatUpdated();
+  if (tab === 'chats' || tab === 'groups') renderTab();
+  updateBadge();
+}
+function notify(id, d) {
+  if (cur === id && !document.hidden) return;
+  if (!notifOn) return;
+  const who = getU(d.lastFrom).name, body = (d.type === 'group' ? who + ': ' : '') + d.lastText;
+  if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+    try { const n = new Notification(d.type === 'group' ? d.name : who, {body, tag: id, icon: 'icon.svg'}); n.onclick = () => { window.focus(); openChat(id); }; } catch (e) {}
+  } else toast((d.type === 'group' ? d.name + ' · ' : '') + who + ': ' + d.lastText);
+}
+function fetchUser(id) {
+  if (ucache.has(id) || pend.has(id)) return; pend.add(id);
+  getDoc(doc(db, 'users', id)).then(s => { if (s.exists()) ucache.set(id, {id, ...s.data()}); }).catch(() => {})
+    .finally(() => { clearTimeout(fetchUser.t); fetchUser.t = setTimeout(() => { if (tab !== 'settings') renderTab(); if (curKind === 'chat') drawHeader(); }, 80); });
+}
+const waitChat = async id => { for (let i = 0; i < 60 && !chats.find(c => c.id === id); i++) await sleep(50); };
+const ov = (html, cls = 'pane') => { const o = $('#ov'); o.className = 'screen ' + cls; o.innerHTML = html; o.hidden = false; };
+function closeOvQuiet() {
+  const o = $('#ov'); o.hidden = true; o.innerHTML = '';
+  [unsubMsgs, unsubPeer, unsubPosts].forEach(f => f && f()); unsubMsgs = unsubPeer = unsubPosts = null;
+  if (rec) stopRec(false); if (au) { au.pause(); au = null; auId = null; }
+  clearTimeout(storyTimer); clearTimeout(typTimer);
+  cur = null; curKind = null; msgs = []; readSig = '';
+}
+function closeOv() { closeOvQuiet(); renderMain(); }
+
+const EMOJIS = ['❤️','🔥','👍','😀','😂','😍','🙏','🎉','😎','👏','😢','😮'];
+const composerHTML = () => `<button class="ib" data-a="plus" aria-label="المزيد">${ic('plus')}</button><input id="inp" placeholder="اكتب رسالة..." autocomplete="off" enterkeyhint="send"><button class="ib" data-a="cam" aria-label="صورة">${ic('cam')}</button><button class="fab" id="sm" data-a="sendmic" aria-label="إرسال">${ic('mic')}</button>`;
+
+function openChat(id) {
+  const c = chats.find(x => x.id === id); if (!c) return;
+  closeOvQuiet(); cur = id; curKind = 'chat'; firstLoad = true; ovBack = null;
+  ov(`<header class="bar" id="chead"></header><div class="msgs" id="msgs"></div>
+    <div class="emo" id="emo" hidden><button data-a="filepick" aria-label="ملف" style="font-size:1rem;display:flex;align-items:center;gap:6px;color:var(--blue2)">${ic('doc')} ملف</button>${EMOJIS.map(e => `<button data-a="emo" data-e="${e}">${e}</button>`).join('')}</div>
+    <div class="composer" id="cmp">${composerHTML()}</div>`);
+  drawHeader();
+  unsubMsgs = onSnapshot(query(collection(db, 'chats', id, 'messages'), orderBy('ts'), limitToLast(150)), s => {
+    msgs = s.docs.map(d => ({id: d.id, ...d.data({serverTimestamps: 'estimate'}), pending: d.metadata.hasPendingWrites}));
+    drawMsgs(); markRead();
+  }, e => toast('تعذر تحميل الرسائل: ' + e.code));
+  if (c.type === 'dm') unsubPeer = onSnapshot(doc(db, 'users', otherOf(c)), s => { if (s.exists()) { ucache.set(s.id, {id: s.id, ...s.data()}); drawHeader(); } });
+  markRead(); renderMain();
+  if (matchMedia('(min-width:900px)').matches) { const i = $('#inp'); i && i.focus(); }
+}
+function typingNames(c) {
+  return Object.entries(c.typing || {}).filter(([k, v]) => k !== uid && Date.now() - ms(v) < 5000).map(([k]) => getU(k).name);
+}
+function statusText(c) {
+  const t = typingNames(c);
+  if (c.type === 'group') return t.length ? t.join('، ') + ' يكتب...' : c.members.length + ' عضو';
+  if (t.length) return 'يكتب...';
+  const o = getU(otherOf(c)), ls = ms(o.lastSeen);
+  if (Date.now() - ls < 100000) return 'متصل الآن';
+  return ls ? 'آخر ظهور ' + fmtList(ls) + (fmtList(ls) === fmtT(ls) ? '' : '') : '';
+}
+function drawHeader() {
+  const c = curChat(), el = $('#chead'); if (!c || !el) return;
+  const g = c.type === 'group', o = g ? null : getU(otherOf(c)), name = chatName(c);
+  el.innerHTML = `<button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button>
+    <button class="hdinfo" data-a="info" data-id="${c.id}">${g ? av(name, colorOf(name), 40) : av(o.name, colorOf(o.name), 40, Date.now() - ms(o.lastSeen) < 100000, o.photo)}
+    <div class="ttl"><b>${esc(name)}</b><small id="st">${esc(statusText(c))}</small></div></button>`;
+  clearTimeout(typTimer); if (typingNames(c).length) typTimer = setTimeout(drawHeader, 5200);
+}
+function chatUpdated() {
+  drawHeader();
+  const c = curChat(); if (!c) return;
+  const sig = JSON.stringify(Object.values(c.readAt || {}).map(ms));
+  if (sig !== readSig) { readSig = sig; drawMsgs(); }
+  markRead();
+}
+function markRead() {
+  const c = curChat(); if (!c || document.hidden || curKind !== 'chat') return;
+  const myR = ms((c.readAt || {})[uid]), lo = [...msgs].reverse().find(m => m.from !== uid);
+  const need = ((c.unread || {})[uid] || 0) > 0 || (lo && ms(lo.ts) > myR);
+  if (need && Date.now() - lastMarkAt > 800) {
+    lastMarkAt = Date.now();
+    updateDoc(doc(db, 'chats', c.id), {['unread.' + uid]: 0, ['readAt.' + uid]: serverTimestamp()}).catch(() => {});
+  }
+}
+function bubble(m, g, oR) {
+  const me_ = m.from === uid, t = ms(m.ts);
+  const who = g && !me_ ? `<div class="who" style="color:${colorOf(m.from)}">${esc(m.fromName || getU(m.from).name)}</div>` : '';
+  let body = '';
+  if (m.t === 'text') body = esc(m.x);
+  if (m.t === 'voice') body = `<div class="voice" data-a="play" data-id="${m.id}"><span class="pl">${ic('play')}</span><span class="wave">${Array.from({length: 26}, (_, k) => `<i style="height:${20 + Math.abs(Math.sin(k * 1.7 + m.dur)) * 70}%"></i>`).join('')}</span><span style="font-size:.78rem">${fmtDur(m.dur || 0)}</span></div>`;
+  if (m.t === 'img') body = `<button class="img" data-a="img" data-id="${m.id}" style="display:block;width:230px"><img src="${esc(m.data)}" alt="صورة" style="width:100%;display:block;border-radius:10px"></button>${m.x ? esc(m.x) : ''}`;
+  if (m.t === 'file') body = `<div class="file" data-a="file" data-id="${m.id}" style="cursor:pointer"><span class="fi">${ic('doc')}</span><div style="line-height:1.3"><b style="font-size:.9rem;word-break:break-all">${esc(m.name)}</b><br><small style="color:var(--mute)">${(m.size / 1024).toFixed(0)} KB</small></div></div>`;
+  let tick = '';
+  if (me_) tick = m.pending ? icf('chk').replace('class="i flip"', 'class="i" style="width:14px;height:14px;opacity:.5"')
+    : (!g && oR >= t && t) ? ic('chk2').replace('class="i"', 'class="i" style="width:15px;height:15px;color:#7fd0ff"')
+    : ic('chk2').replace('class="i"', 'class="i" style="width:15px;height:15px;opacity:.55"');
+  return `<div class="b ${me_ ? 'me' : ''}" ${me_ && !m.pending ? `data-a="mbub" data-id="${m.id}"` : ''}>${who}${body}<time>${t ? fmtT(t) : ''}${tick}</time></div>`;
+}
+function drawMsgs() {
+  const c = curChat(), el = $('#msgs'); if (!c || !el) return;
+  const near = el.scrollHeight - el.scrollTop - el.clientHeight < 140, g = c.type === 'group';
+  const oR = g ? 0 : ms((c.readAt || {})[otherOf(c)]);
+  let h = `<div class="sysmsg">${ics('lock', 'width:12px;height:12px;vertical-align:-2px')} الرسائل محمية وتُرسل عبر خادم آمن</div>`, last = '';
+  for (const m of msgs) { const t = ms(m.ts), dk = new Date(t).toDateString(); if (dk !== last) { h += `<div class="sysmsg">${fmtDay(t)}</div>`; last = dk; } h += bubble(m, g, oR); }
+  el.innerHTML = h;
+  const lm = msgs[msgs.length - 1];
+  if (near || firstLoad || (lm && lm.from === uid)) el.scrollTop = el.scrollHeight;
+  firstLoad = false; paintPlay();
+}
+async function sendMsg(c, payload, preview) {
+  const b = writeBatch(db);
+  b.set(doc(collection(db, 'chats', c.id, 'messages')), {from: uid, fromName: me.name, ts: serverTimestamp(), ...payload});
+  const upd = {lastText: preview, lastFrom: uid, lastName: me.name, lastTs: serverTimestamp(), ['typing.' + uid]: 0};
+  c.members.forEach(m => { if (m !== uid) upd['unread.' + m] = increment(1); });
+  b.update(doc(db, 'chats', c.id), upd);
+  await b.commit();
+}
+async function sendCur(payload, preview) {
+  const c = curChat(); if (!c) return;
+  try { await sendMsg(c, payload, preview); } catch (e) { toast('تعذر الإرسال: ' + (e.code || e.message)); }
+}
+function sendMic() {
+  const i = $('#inp'); if (!i) return; const v = i.value.trim();
+  if (v) { i.value = ''; $('#sm').innerHTML = ic('mic'); sendCur({t: 'text', x: v.slice(0, 3000)}, v.slice(0, 80)); }
+  else startRec();
+}
+function typing() {
+  const c = curChat(); if (!c || Date.now() - lastTyp < 2500) return; lastTyp = Date.now();
+  updateDoc(doc(db, 'chats', c.id), {['typing.' + uid]: serverTimestamp()}).catch(() => {});
+}
+
+/* ---------- media ---------- */
+function blobToData(b) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); }); }
+function imgToData(file, max = 1024, qual = .72) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => { const i = new Image(); i.onload = () => {
+      const k = Math.min(1, max / Math.max(i.width, i.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(i.width * k); cv.height = Math.round(i.height * k);
+      cv.getContext('2d').drawImage(i, 0, 0, cv.width, cv.height);
+      let d = cv.toDataURL('image/jpeg', qual);
+      if (d.length > 780000) d = cv.toDataURL('image/jpeg', .5);
+      res(d); }; i.onerror = rej; i.src = r.result; };
+    r.onerror = rej; r.readAsDataURL(file);
+  });
+}
+let rec = null;
+async function startRec() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return toast('متصفحك لا يدعم التسجيل الصوتي');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+    const mr = new MediaRecorder(stream, {...(mime ? {mimeType: mime} : {}), audioBitsPerSecond: 24000});
+    rec = {mr, stream, chunks: [], start: Date.now(), mime: mr.mimeType || mime};
+    mr.ondataavailable = e => e.data.size && rec && rec.chunks.push(e.data);
+    mr.start();
+    $('#cmp').innerHTML = `<button class="ib" data-a="reccancel" style="color:var(--danger)" aria-label="إلغاء">${ic('trash')}</button><div class="rec"><i class="rd"></i><b id="rt">0:00</b><span>جارٍ التسجيل...</span></div><button class="fab" data-a="recsend" aria-label="إرسال">${icf('send')}</button>`;
+    rec.timer = setInterval(() => { if (!rec) return; const s = Math.floor((Date.now() - rec.start) / 1000), t = $('#rt'); if (t) t.textContent = fmtDur(s); if (s >= 90) stopRec(true); }, 250);
+  } catch (e) { rec = null; toast('اسمح باستخدام الميكروفون من إعدادات المتصفح'); }
+}
+function stopRec(send) {
+  if (!rec) return; const r = rec; rec = null; clearInterval(r.timer);
+  r.mr.onstop = async () => {
+    r.stream.getTracks().forEach(t => t.stop());
+    if (!send) return;
+    const blob = new Blob(r.chunks, {type: r.mime || 'audio/webm'}), dur = Math.max(1, Math.round((Date.now() - r.start) / 1000));
+    if (blob.size > 700000) return toast('التسجيل كبير جداً');
+    sendCur({t: 'voice', data: await blobToData(blob), dur}, '🎤 رسالة صوتية');
+  };
+  try { r.mr.stop(); } catch (e) { r.stream.getTracks().forEach(t => t.stop()); }
+  const cmp = $('#cmp'); if (cmp) cmp.innerHTML = composerHTML();
+}
+let au = null, auId = null;
+function togglePlay(id) {
+  const m = msgs.find(x => x.id === id); if (!m) return;
+  if (au && auId === id) { au.pause(); au = null; auId = null; return paintPlay(); }
+  if (au) au.pause();
+  au = new Audio(m.data); auId = id;
+  au.onended = () => { au = null; auId = null; paintPlay(); };
+  au.play().catch(() => toast('تعذر تشغيل الصوت')); paintPlay();
+}
+function paintPlay() { document.querySelectorAll('.voice').forEach(v => { const on = v.dataset.id === auId; v.classList.toggle('playing', on); v.querySelector('.pl').innerHTML = ic(on ? 'pause' : 'play'); }); }
+
+function pickFile(mode, accept) { pickMode = mode; const f = $('#fpick'); f.accept = accept; f.value = ''; f.click(); }
+async function onFilePicked(file) {
+  if (!file) return;
+  try {
+    if (pickMode === 'img') { toast('جارٍ تجهيز الصورة...'); sendCur({t: 'img', data: await imgToData(file)}, '📷 صورة'); }
+    else if (pickMode === 'file') {
+      if (file.size > 600 * 1024) return toast('الحد الأقصى للملف ٦٠٠ كيلوبايت');
+      sendCur({t: 'file', data: await blobToData(file), name: file.name.slice(0, 80), size: file.size}, '📄 ' + file.name.slice(0, 60));
+    }
+    else if (pickMode === 'avatar') {
+      const d = await imgToData(file, 200, .8);
+      if (curKind === 'prof') { editPhoto = d; $('#pphoto').innerHTML = `<img src="${d}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">`; }
+      else { tmpUser.photo = d; tmpUser.name = $('#nm') ? $('#nm').value : tmpUser.name; authView('profile'); }
+    }
+    else if (pickMode === 'story') { sc.img = await imgToData(file, 1080, .75); drawSC(); }
+  } catch (e) { toast('تعذر قراءة الملف'); }
+}
+
+/* ---------- start chats / info / pickers ---------- */
+async function startDM(other) {
+  const id = [uid, other].sort().join('_'), ref = doc(db, 'chats', id);
+  try {
+    const s = await getDoc(ref);
+    if (!s.exists()) await setDoc(ref, {type: 'dm', members: [uid, other], createdBy: uid, createdAt: serverTimestamp(), lastText: '', lastFrom: null, lastTs: serverTimestamp(), unread: {}, readAt: {}, typing: {}});
+    await waitChat(id); openChat(id);
+  } catch (e) { toast('تعذر فتح المحادثة: ' + (e.code || e.message)); }
+}
+let pk = null, pkSeq = 0;
+function openPicker(mode, chat) {
+  closeOvQuiet(); curKind = 'pick'; pk = {mode, sel: [], res: [], chat: chat || null};
+  ovBack = mode === 'add' ? () => openInfo(chat.id) : null;
+  const title = {dm: 'محادثة جديدة', group: 'مجموعة جديدة', add: 'إضافة أعضاء'}[mode];
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>${title}</b>${mode !== 'dm' ? '<small id="pkc">0 محدد</small>' : ''}</div>${mode !== 'dm' ? `<button class="btn sm pri" data-a="pkdone">${mode === 'group' ? 'إنشاء' : 'إضافة'}</button>` : ''}</header>
+    ${mode === 'group' ? `<div style="padding:10px 12px 0"><div class="field"><input id="gname" placeholder="اسم المجموعة" maxlength="40"></div></div>` : ''}
+    <div class="search">${ic('search')}<input id="pq" placeholder="ابحث بالاسم أو @اسم_المستخدم" autocomplete="off"></div>
+    <div class="scroll" id="pkr"><div class="empty-note">جارٍ التحميل...</div></div>`);
+  pkSearch('');
+}
+async function pkSearch(txt) {
+  const s = txt.trim().toLowerCase().replace(/^@/, ''), seq = ++pkSeq; let docs = [];
+  try {
+    if (!s) docs = (await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(25)))).docs;
+    else {
+      const [a, b] = await Promise.all([
+        getDocs(query(collection(db, 'users'), where('handle', '>=', s), where('handle', '<=', s + '\uf8ff'), limit(10))),
+        getDocs(query(collection(db, 'users'), where('nameL', '>=', s), where('nameL', '<=', s + '\uf8ff'), limit(10)))]);
+      const m = new Map(); [...a.docs, ...b.docs].forEach(d => m.set(d.id, d)); docs = [...m.values()];
+    }
+  } catch (e) { return toast('تعذر البحث: ' + (e.code || e.message)); }
+  if (seq !== pkSeq || !pk) return;
+  pk.res = docs.filter(d => d.id !== uid && !(pk.mode === 'add' && pk.chat.members.includes(d.id))).map(d => ({id: d.id, ...d.data()}));
+  pk.res.forEach(u => ucache.set(u.id, u)); drawPk();
+}
+function drawPk() {
+  const el = $('#pkr'); if (!el || !pk) return;
+  el.innerHTML = pk.res.map(u => { const on = pk.sel.includes(u.id); return `<button class="row" data-a="pkpick" data-id="${u.id}">${av(u.name, colorOf(u.name), 44, false, u.photo)}<div class="mid"><b>${esc(u.name)}</b><span dir="ltr" style="text-align:start">@${esc(u.handle)}</span></div>${pk.mode !== 'dm' ? `<span class="chk ${on ? 'on' : ''}">${on ? ic('chk') : ''}</span>` : ''}</button>`; }).join('') || `<div class="empty-note">لا يوجد مستخدمون مطابقون</div>`;
+  const c = $('#pkc'); if (c) c.textContent = pk.sel.length + ' محدد';
+}
+async function pkDone() {
+  if (!pk) return;
+  if (!pk.sel.length) return toast('اختر عضواً واحداً على الأقل');
+  try {
+    if (pk.mode === 'group') {
+      const name = $('#gname').value.trim(); if (name.length < 2) return toast('اكتب اسماً للمجموعة');
+      const r = await addDoc(collection(db, 'chats'), {type: 'group', name, owner: uid, createdBy: uid, createdAt: serverTimestamp(), members: [uid, ...pk.sel], unread: {}, readAt: {}, typing: {}, lastText: 'تم إنشاء المجموعة 🎉', lastFrom: uid, lastName: me.name, lastTs: serverTimestamp()});
+      await waitChat(r.id); openChat(r.id);
+    } else {
+      const id = pk.chat.id; await updateDoc(doc(db, 'chats', id), {members: arrayUnion(...pk.sel)}); toast('تمت الإضافة'); await sleep(200); openInfo(id);
+    }
+  } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
+}
+function openInfo(id) {
+  const c = chats.find(x => x.id === id); if (!c) return;
+  closeOvQuiet(); curKind = 'info'; ovBack = () => openChat(id);
+  if (c.type === 'dm') {
+    const o = getU(otherOf(c));
+    ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>معلومات جهة الاتصال</b></div></header>
+      <div class="scroll" style="padding:24px 18px;text-align:center"><div style="display:flex;justify-content:center">${av(o.name, colorOf(o.name), 110, false, o.photo)}</div>
+      <h3 style="margin-top:14px">${esc(o.name)}</h3><div dir="ltr" style="color:var(--blue2)">@${esc(o.handle || '')}</div><p style="color:var(--mute);margin-top:10px">${esc(o.bio || '')}</p></div>`);
+    return;
+  }
+  const own = c.owner === uid;
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>معلومات المجموعة</b></div></header>
+    <div class="scroll"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px">${av(c.name, colorOf(c.name), 90)}<h3>${esc(c.name)}</h3><small style="color:var(--mute)">${c.members.length} عضو</small>
+    ${own ? `<button class="btn sm out" data-a="rename" data-id="${c.id}">تغيير الاسم</button>` : ''}</div>
+    ${own ? `<button class="row" data-a="addmem" data-id="${c.id}"><div class="av" style="--s:44px;background:var(--blue)">${ic('plus')}</div><div class="mid"><b>إضافة أعضاء</b></div></button>` : ''}
+    ${c.members.map(m => { const u = getU(m); return `<div class="row" style="cursor:default">${av(u.name, colorOf(u.name), 44, false, u.photo)}<div class="mid"><b>${esc(u.name)}${m === uid ? ' (أنت)' : ''} ${m === c.owner ? '<span class="crown">♛</span>' : ''}</b><span dir="ltr" style="text-align:start">@${esc(u.handle || '')}</span></div></div>`; }).join('')}
+    <button class="setrow" data-a="leave" data-id="${c.id}" style="color:var(--danger)">${ic('logout')}<span class="l">مغادرة المجموعة</span></button></div>`);
+}
+
+/* ---------- channels ---------- */
+function openChannel(id) {
+  const c = chanList.find(x => x.id === id); if (!c) return;
+  closeOvQuiet(); cur = id; curKind = 'chan'; ovBack = null;
+  const f = (c.followers || []).includes(uid), can = c.owner === uid || isAdmin;
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button>
+    <div class="av" style="--s:40px;background:linear-gradient(135deg,${colorOf(c.name)},#0a1a3d)">${esc(c.name[0])}</div>
+    <div class="ttl"><b>${esc(c.name)} ${c.verified ? `<span class="vf" style="display:inline-block;vertical-align:-3px">${ic('verified')}</span>` : ''}</b><small>${(c.followers || []).length} مشترك</small></div>
+    ${can ? `<button class="ib" data-a="delchan" data-id="${c.id}" style="color:var(--danger)" aria-label="حذف القناة">${ic('trash')}</button>` : ''}
+    <button class="btn sm ${f ? 'out' : 'pri'}" data-a="follow" data-id="${c.id}" data-re="1">${f ? 'متابَع' : 'متابعة'}</button></header>
+    <div class="msgs" id="posts"></div>
+    ${can ? `<div class="composer"><input id="cpin" placeholder="اكتب منشوراً للمتابعين..." maxlength="2000"><button class="fab" data-a="cpost" aria-label="نشر">${icf('send')}</button></div>` : ''}`);
+  unsubPosts = onSnapshot(query(collection(db, 'channels', id, 'posts'), orderBy('ts'), limitToLast(100)), s => {
+    const el = $('#posts'); if (!el) return;
+    el.innerHTML = (c.owner ? '' : '') + s.docs.map(d => { const p = d.data({serverTimestamps: 'estimate'}); return `<div class="cpost">${esc(p.x)}<time>${fmtDay(ms(p.ts))} ${fmtT(ms(p.ts))}${can ? ` <button data-a="delpost" data-id="${d.id}" style="color:var(--danger);margin-inline-start:8px">حذف</button>` : ''}</time></div>`; }).join('') + `<div class="sysmsg">قناة للقراءة فقط</div>`;
+    el.scrollTop = el.scrollHeight;
+  }, e => toast('تعذر تحميل المنشورات: ' + e.code));
+}
+
+/* ---------- profile ---------- */
+let editPhoto = null;
+function openProfile() {
+  closeOvQuiet(); curKind = 'prof'; editPhoto = me.photo || null;
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>الملف الشخصي</b></div></header>
+    <div class="scroll" style="padding:18px"><div style="display:flex;justify-content:center"><button id="pphoto" data-a="pickavatar" class="avpick has" style="width:110px;height:110px;overflow:hidden;color:var(--blue2)">${me.photo ? `<img src="${esc(me.photo)}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc(me.name[0])}<span class="cam">${ic('cam')}</span></button></div>
+    <label class="lbl" for="pn">الاسم</label><div class="field">${ic('user')}<input id="pn" value="${esc(me.name)}" maxlength="40"></div>
+    <label class="lbl" for="pu">اسم المستخدم</label><div class="field"><span>@</span><input id="pu" dir="ltr" style="text-align:start" value="${esc(me.handle || '')}" maxlength="24"></div>
+    <label class="lbl" for="pb">النبذة</label><div class="field ta"><textarea id="pb" maxlength="120">${esc(me.bio || '')}</textarea></div>
+    <div class="err" id="ae"></div>
+    <button class="btn pri" data-a="saveprof" style="margin-top:12px">حفظ التغييرات</button></div>`);
+}
+
+/* ---------- stories ---------- */
+let storyTimer = null, sList = [], sIdx = 0, sc = {bg: 0, img: null};
+function openStory(id) {
+  sList = stories.filter(s => s.exp > Date.now());
+  const pos = sList.findIndex(s => s.id === id); if (pos < 0) return;
+  closeOvQuiet(); curKind = 'story'; sIdx = pos; showStory();
+}
+function showStory() {
+  const s = sList[sIdx]; seen.add(s.id); try { localStorage.setItem('dama_seen', JSON.stringify([...seen].slice(-300))); } catch (e) {}
+  const mine = s.uid === uid;
+  ov(`<div class="vi">${storyArt(s)}</div>
+    <div class="top"><div class="prog">${sList.map((_, j) => `<i class="${j < sIdx ? 'done' : j === sIdx ? 'run' : ''}"><b></b></i>`).join('')}</div>
+      <div style="display:flex;align-items:center;gap:10px">${av(s.name, colorOf(s.name), 38, false, getU(s.uid).photo)}<div style="flex:1;line-height:1.3"><b>${esc(mine ? 'قصتي' : s.name)}</b><br><small style="opacity:.8">${fmtT(ms(s.ts))}</small></div>
+      ${mine ? `<button class="ib" data-a="delstory" data-id="${s.id}" aria-label="حذف">${ic('trash')}</button>` : ''}
+      <button class="ib" data-a="close" aria-label="إغلاق">${ic('x')}</button></div></div>
+    <div class="cap">${s.img ? esc(s.text || '') : ''}</div>
+    ${mine ? '' : `<div class="rpl"><input data-sr placeholder="رد على القصة..."><button class="fab" data-a="sviewreply" data-id="${s.id}" aria-label="إرسال">${icf('send')}</button></div>`}`, 'viewer full');
+  clearTimeout(storyTimer);
+  storyTimer = setTimeout(() => { if (sIdx < sList.length - 1) { sIdx++; showStory(); } else closeOv(); }, 5000);
+}
+async function replyStory(id, text) {
+  text = (text || '').trim(); if (!text) return toast('اكتب ردك أولاً');
+  const s = stories.find(x => x.id === id); if (!s) return;
+  const cid = [uid, s.uid].sort().join('_'), ref = doc(db, 'chats', cid);
+  try {
+    const sn = await getDoc(ref);
+    if (!sn.exists()) await setDoc(ref, {type: 'dm', members: [uid, s.uid], createdBy: uid, createdAt: serverTimestamp(), lastText: '', lastFrom: null, lastTs: serverTimestamp(), unread: {}, readAt: {}, typing: {}});
+    const x = '↩️ رد على قصتك: ' + text;
+    await sendMsg({id: cid, members: [uid, s.uid]}, {t: 'text', x}, x.slice(0, 80)); toast('تم إرسال الرد');
+  } catch (e) { toast('تعذر الإرسال: ' + (e.code || e.message)); }
+}
+function openStoryCreate() {
+  closeOvQuiet(); curKind = 'screate'; sc = {bg: 0, img: null};
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>قصة جديدة</b></div><button class="btn sm pri" data-a="publish">نشر</button></header>
+    <div class="scroll" style="padding:14px"><div id="sprev" class="post" style="margin:0 auto 12px;max-width:300px"><div class="im"></div></div>
+    <div class="field ta"><textarea id="stx" placeholder="اكتب نص القصة..." maxlength="200"></textarea></div>
+    <div style="display:flex;gap:10px;margin:12px 0;align-items:center" id="sbgs"></div>
+    <button class="btn out" data-a="storyimg">${ic('cam')} إضافة صورة</button></div>`);
+  drawSC();
+}
+function drawSC() {
+  const t = $('#stx'); if (!t) return;
+  $('#sprev .im').innerHTML = storyArt({img: sc.img, bg: sc.bg, text: t.value || 'اكتب شيئاً...'});
+  $('#sbgs').innerHTML = BGS.map((b, i) => `<button data-a="sbg" data-v="${i}" aria-label="لون ${i + 1}" style="width:38px;height:38px;border-radius:50%;background:${b};border:2px solid ${sc.bg === i && !sc.img ? '#fff' : 'transparent'}"></button>`).join('') + (sc.img ? `<button class="btn sm danger" data-a="rmimg">إزالة الصورة</button>` : '');
+}
+
+/* ---------- admin ---------- */
+async function openAdmin() {
+  if (!isAdmin) return; closeOvQuiet(); curKind = 'admin'; ovBack = null;
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="ttl"><b>لوحة المطور <span class="crown">♛</span></b><small>صلاحيات المشرف</small></div></header><div class="scroll" id="adm"><div class="empty-note">جارٍ التحميل...</div></div>`);
+  try {
+    const cnt = async n => (await getCountFromServer(collection(db, n))).data().count;
+    const [u, c, st] = await Promise.all([cnt('users'), cnt('channels'), cnt('stories')]);
+    const us = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(50)));
+    if (curKind !== 'admin') return;
+    $('#adm').innerHTML = `<div class="stat"><div><b>${u}</b><span>المستخدمون</span></div><div><b>${c}</b><span>القنوات</span></div><div><b>${st}</b><span>القصص</span></div><div><b>${chanList.filter(x => x.verified).length}</b><span>قنوات موثقة</span></div></div>
+      <div class="lbl" style="margin:12px 16px">القنوات</div>${chanList.map(ch => `<div class="urow"><div class="n"><b>${esc(ch.name)}</b><small>${(ch.followers || []).length} مشترك</small></div><button class="btn sm ${ch.verified ? 'out' : 'pri'}" data-a="verify" data-id="${ch.id}">${ch.verified ? 'إلغاء التوثيق' : 'توثيق'}</button><button class="ib" data-a="delchan" data-id="${ch.id}" data-adm="1" style="color:var(--danger)" aria-label="حذف">${ic('trash')}</button></div>`).join('') || '<div class="empty-note">لا توجد قنوات</div>'}
+      <div class="lbl" style="margin:12px 16px">آخر المستخدمين</div>${us.docs.map(d => { const x = d.data(); return `<div class="urow">${av(x.name, colorOf(x.name), 38, false, x.photo)}<div class="n"><b>${esc(x.name)}</b><small dir="ltr">@${esc(x.handle)}</small></div>${d.id === uid ? '' : `<button class="btn sm ${x.banned ? 'pri' : 'danger'}" data-a="ban" data-id="${d.id}" data-b="${x.banned ? 1 : 0}">${x.banned ? 'إلغاء الحظر' : 'حظر'}</button>`}</div>`; }).join('')}`;
+  } catch (e) { $('#adm').innerHTML = `<div class="empty-note">تعذر التحميل: ${esc(e.code || e.message)}</div>`; }
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+document.addEventListener('click', async e => {
+  const lb = e.target.closest('#lb'); if (lb) { lb.hidden = true; lb.innerHTML = ''; return; }
+  const t = e.target.closest('[data-a]'); if (!t) return;
+  const a = t.dataset.a, id = t.dataset.id, v = t.dataset.v;
+  try { switch (a) {
+    case 'auth': authView(v); break;
+    case 'google': googleSignIn(t); break;
+    case 'login': {
+      const em = $('#em').value.trim(), pw = $('#pw').value;
+      if (!okEmail(em)) return setAuthErr('اكتب بريداً إلكترونياً صحيحاً');
+      if (!pw) return setAuthErr('اكتب كلمة السر');
+      busy(t, true); try { await signInWithEmailAndPassword(auth, em, pw); } catch (x) { setAuthErr(authMsg(x)); } busy(t, false); break;
+    }
+    case 'forgot': {
+      const em = $('#em').value.trim(); if (!okEmail(em)) return setAuthErr('اكتب بريدك أولاً ثم اضغط نسيت كلمة السر');
+      try { await sendPasswordResetEmail(auth, em); toast('أرسلنا رابط إعادة التعيين إلى بريدك'); } catch (x) { setAuthErr(authMsg(x)); } break;
+    }
+    case 'signup': {
+      const nm = $('#nm').value.trim(), em = $('#em').value.trim(), pw = $('#pw').value;
+      if (nm.length < 2) return setAuthErr('اكتب اسمك الكامل');
+      if (!okEmail(em)) return setAuthErr('اكتب بريداً إلكترونياً صحيحاً');
+      if (pw.length < 6) return setAuthErr('كلمة السر ٦ أحرف على الأقل');
+      busy(t, true);
+      try { const r = await createUserWithEmailAndPassword(auth, em, pw); tmpUser.name = nm; try { await updateProfile(r.user, {displayName: nm}); } catch (x) {} }
+      catch (x) { setAuthErr(authMsg(x)); } busy(t, false); break;
+    }
+    case 'pickavatar': tmpUser.name = $('#nm') ? $('#nm').value : tmpUser.name; pickFile('avatar', 'image/*'); break;
+    case 'finish': {
+      const name = $('#nm').value.trim(), un = $('#un').value.trim().replace(/^@/, '');
+      if (name.length < 2) return setAuthErr('اكتب اسمك');
+      if (!/^[A-Za-z0-9_.]{3,24}$/.test(un)) return setAuthErr('اسم المستخدم: ٣ أحرف على الأقل، حروف إنجليزية وأرقام و _ . فقط');
+      busy(t, true);
+      try { await saveProfile({name, handle: un, bio: $('#bio').value.trim(), photo: tmpUser.photo}, true); await onAuth(auth.currentUser); }
+      catch (x) { setAuthErr(x.message === 'taken' ? 'اسم المستخدم محجوز، جرّب غيره' : 'تعذر الحفظ: ' + (x.code || x.message)); } busy(t, false); break;
+    }
+    case 'logout': await signOut(auth); break;
+    case 'tab': tab = v; q = ''; searching = false; chanTab = 'discover'; if (curKind !== 'chat') closeOvQuiet(); renderMain(); break;
+    case 'srch': searching = !searching; if (!searching) q = ''; renderMain(); break;
+    case 'chat': openChat(id); break;
+    case 'chan': if (e.target.closest('[data-a="follow"]')) break; openChannel(id); break;
+    case 'close': if (ovBack) { const f = ovBack; ovBack = null; closeOvQuiet(); f(); } else closeOv(); break;
+    case 'info': openInfo(id); break;
+    case 'plus': { const m = $('#emo'); m.hidden = !m.hidden; break; }
+    case 'emo': { const i = $('#inp'); i.value += t.dataset.e; i.focus(); i.dispatchEvent(new Event('input', {bubbles: true})); break; }
+    case 'filepick': pickFile('file', '*/*'); break;
+    case 'cam': pickFile('img', 'image/*'); break;
+    case 'sendmic': sendMic(); break;
+    case 'reccancel': stopRec(false); break;
+    case 'recsend': stopRec(true); break;
+    case 'play': togglePlay(id); break;
+    case 'img': { const m = msgs.find(x => x.id === id); if (m) { const l = $('#lb'); l.innerHTML = `<img src="${esc(m.data)}" alt="">`; l.hidden = false; } break; }
+    case 'file': { const m = msgs.find(x => x.id === id); if (m) { const l = document.createElement('a'); l.href = m.data; l.download = m.name; l.click(); } break; }
+    case 'mbub': confirmBox('حذف الرسالة', 'سيتم حذف الرسالة للجميع.', 'حذف', async () => { try { await deleteDoc(doc(db, 'chats', cur, 'messages', id)); } catch (x) { toast('تعذر الحذف'); } }); break;
+    case 'newchat': openPicker('dm'); break;
+    case 'newgroup': openPicker('group'); break;
+    case 'pkpick': if (pk.mode === 'dm') startDM(id); else { const i = pk.sel.indexOf(id); i >= 0 ? pk.sel.splice(i, 1) : pk.sel.push(id); drawPk(); } break;
+    case 'pkdone': pkDone(); break;
+    case 'addmem': openPicker('add', chats.find(c => c.id === id)); break;
+    case 'rename': modal('اسم المجموعة', {val: chatName(chats.find(c => c.id === id)), ok: 'حفظ', max: 40}, async n => { if (n.length < 2) { $('#me').textContent = 'الاسم قصير'; return false; } await updateDoc(doc(db, 'chats', id), {name: n}); await sleep(150); openInfo(id); }); break;
+    case 'leave': confirmBox('مغادرة المجموعة', 'لن تتمكن من رؤية رسائلها بعد المغادرة.', 'مغادرة', async () => {
+      const c = chats.find(x => x.id === id), rest = c.members.filter(m => m !== uid);
+      const upd = {members: arrayRemove(uid)}; if (c.owner === uid && rest.length) upd.owner = rest[0];
+      ovBack = null; closeOv(); try { await updateDoc(doc(db, 'chats', id), upd); } catch (x) { toast('تعذرت المغادرة'); } }); break;
+    case 'newchan': modal('إنشاء قناة', {ph: 'اسم القناة', ok: 'إنشاء', max: 40}, async n => {
+      if (n.length < 2) { $('#me').textContent = 'اكتب اسماً للقناة'; return false; }
+      await addDoc(collection(db, 'channels'), {name: n, owner: uid, ownerName: me.name, verified: false, followers: [uid], lastText: '', createdAt: serverTimestamp()}); toast('تم إنشاء القناة'); }); break;
+    case 'ctab': chanTab = v; renderTab(); break;
+    case 'follow': { e.stopPropagation(); const c = chanList.find(x => x.id === id), f = (c.followers || []).includes(uid);
+      await updateDoc(doc(db, 'channels', id), {followers: f ? arrayRemove(uid) : arrayUnion(uid)}); toast(f ? 'تم إلغاء المتابعة' : 'تمت المتابعة');
+      if (t.dataset.re) setTimeout(() => cur === id && openChannel(id), 250); break; }
+    case 'cpost': { const i = $('#cpin'), x = i.value.trim(); if (!x) return; i.value = '';
+      const b = writeBatch(db); b.set(doc(collection(db, 'channels', cur, 'posts')), {x, ts: serverTimestamp(), by: uid}); b.update(doc(db, 'channels', cur), {lastText: x.slice(0, 80)}); await b.commit(); break; }
+    case 'delpost': await deleteDoc(doc(db, 'channels', cur, 'posts', id)); break;
+    case 'delchan': confirmBox('حذف القناة', 'سيتم حذف القناة نهائياً.', 'حذف', async () => { await deleteDoc(doc(db, 'channels', id)); if (t.dataset.adm) openAdmin(); else closeOv(); }); break;
+    case 'mystory': e.stopPropagation(); openStoryCreate(); break;
+    case 'story': if (!id) { openStoryCreate(); break; } openStory(id); break;
+    case 'sbg': sc.bg = +v; sc.img = null; drawSC(); break;
+    case 'storyimg': pickFile('story', 'image/*'); break;
+    case 'rmimg': sc.img = null; drawSC(); break;
+    case 'publish': { const x = $('#stx').value.trim(); if (!x && !sc.img) return toast('اكتب نصاً أو أضف صورة');
+      await addDoc(collection(db, 'stories'), {uid, name: me.name, text: x, bg: sc.bg, img: sc.img, ts: serverTimestamp(), exp: Date.now() + 864e5}); toast('تم نشر قصتك'); tab = 'status'; closeOv(); break; }
+    case 'delstory': clearTimeout(storyTimer); confirmBox('حذف القصة', '', 'حذف', async () => { await deleteDoc(doc(db, 'stories', id)); closeOv(); }); break;
+    case 'sreply': { const i = $(`[data-r="${id}"]`); await replyStory(id, i.value); i.value = ''; break; }
+    case 'sviewreply': { const i = $('[data-sr]'); await replyStory(id, i.value); i.value = ''; break; }
+    case 'editprof': openProfile(); break;
+    case 'saveprof': {
+      const n = $('#pn').value.trim(), u = $('#pu').value.trim().replace(/^@/, '');
+      if (n.length < 2) return setAuthErr('اكتب اسماً صحيحاً');
+      if (!/^[A-Za-z0-9_.]{3,24}$/.test(u)) return setAuthErr('اسم المستخدم غير صالح');
+      busy(t, true);
+      try { await saveProfile({name: n, handle: u, bio: $('#pb').value.trim(), photo: editPhoto}, false); toast('تم حفظ التغييرات'); closeOv(); }
+      catch (x) { setAuthErr(x.message === 'taken' ? 'اسم المستخدم محجوز' : 'تعذر الحفظ: ' + (x.code || x.message)); } busy(t, false); break;
+    }
+    case 'tgnotif': notifOn = !notifOn; localStorage.setItem('dama_notif', notifOn ? '1' : '0');
+      if (notifOn && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); renderTab(); break;
+    case 'admin': openAdmin(); break;
+    case 'ban': await updateDoc(doc(db, 'users', id), {banned: t.dataset.b !== '1'}); openAdmin(); break;
+    case 'verify': { const c = chanList.find(x => x.id === id); await updateDoc(doc(db, 'channels', id), {verified: !c.verified}); setTimeout(openAdmin, 300); break; }
+    case 'mx': $('#modal').hidden = true; $('#modal').innerHTML = ''; break;
+    case 'mok': $('#modal')._ok(); break;
+  } } catch (x) { console.error(x); toast('حدث خطأ: ' + (x.code || x.message)); busy(t, false); }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'inp') { $('#sm').innerHTML = t.value.trim() ? icf('send') : ic('mic'); if (t.value.trim()) typing(); }
+  if (t.id === 'pq') { clearTimeout(pkSearch.t); pkSearch.t = setTimeout(() => pkSearch(t.value), 280); }
+  if (t.id === 'stx') drawSC();
+});
+document.addEventListener('change', e => { if (e.target.id === 'fpick') onFilePicked(e.target.files[0]); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { const l = $('#lb'); if (!l.hidden) { l.hidden = true; return; } if (!$('#modal').hidden) { $('#modal').hidden = true; $('#modal').innerHTML = ''; } else if (!$('#ov').hidden) closeOv(); }
+  if (e.key !== 'Enter' || e.isComposing) return;
+  const t = e.target;
+  if (t.id === 'inp') sendMic();
+  if (t.id === 'cpin') { const b = $('[data-a="cpost"]'); b && b.click(); }
+  if (t.matches('.rp input')) { const b = t.parentElement.querySelector('[data-a="sreply"]'); b && b.click(); }
+  if (t.matches('[data-sr]')) { const b = $('[data-a="sviewreply"]'); b && b.click(); }
+});
+
+init();
+
+</script>
+</body>
+</html>
