@@ -238,6 +238,7 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 #lb{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.92);display:grid;place-items:center;padding:12px}
 #lb img{max-width:100%;max-height:100%;border-radius:8px}
 .b .img{background:none;border:0;padding:0}
+.aitag{font-size:.62rem;background:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700;vertical-align:1px}
 </style>
 </head>
 <body>
@@ -263,6 +264,7 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFunctions, httpsCallable} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
 import {initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, orderBy, limit, limitToLast, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, getDocs, runTransaction, getCountFromServer} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 /* =====================================================================
@@ -545,11 +547,13 @@ function renderTab() {
   const el = $('#tab'); if (!el) return;
   let h = '';
   if (tab === 'chats') {
+    if (fq('شلبي') || fq('ai')) { const al = aiLoad(), lm = al[al.length - 1];
+      h += `<button class="row" data-a="ai">${av('ش', '#2f9e5f', 48)}<div class="mid"><b>شلبي <span class="aitag">AI</span></b><span>${esc(lm ? lm.content : 'صاحبك الذكي، اتكلم معاه في أي حاجة')}</span></div></button>`; }
     const fol = chanList.filter(c => c.followers && c.followers.includes(uid) && fq(c.name));
     h += fol.map(c => `<button class="row" data-a="chan" data-id="${c.id}"><div class="av" style="--s:48px;background:linear-gradient(135deg,#1f6bff,#0a1a3d)">${ic('channel')}</div><div class="mid"><b>${esc(c.name)} ${c.verified ? `<span class="vf">${ic('verified')}</span>` : ''}</b><span>${esc(c.lastText || 'قناة')}</span></div></button>`).join('');
     const list = sorted().filter(c => fq(chatName(c)));
     h += list.map(rowConv).join('');
-    if (!list.length && !fol.length) h = `<div class="empty-note">${q ? 'لا توجد نتائج' : 'لا توجد محادثات بعد<br>اضغط + لبدء محادثة جديدة'}</div>`;
+    if (!list.length && !fol.length && q) h = `<div class="empty-note">${q ? 'لا توجد نتائج' : 'لا توجد محادثات بعد<br>اضغط + لبدء محادثة جديدة'}</div>`;
   }
   if (tab === 'status') {
     const live = stories.filter(s => s.exp > Date.now());
@@ -945,6 +949,42 @@ function drawSC() {
   $('#sbgs').innerHTML = BGS.map((b, i) => `<button data-a="sbg" data-v="${i}" aria-label="لون ${i + 1}" style="width:38px;height:38px;border-radius:50%;background:${b};border:2px solid ${sc.bg === i && !sc.img ? '#fff' : 'transparent'}"></button>`).join('') + (sc.img ? `<button class="btn sm danger" data-a="rmimg">إزالة الصورة</button>` : '');
 }
 
+/* ---------- شلبي AI ---------- */
+const aiLoad = () => { try { return JSON.parse(localStorage.getItem('dama_ai_' + uid)) || []; } catch (e) { return []; } };
+const aiSave = a => { try { localStorage.setItem('dama_ai_' + uid, JSON.stringify(a.filter(m => !m.err).slice(-60))); } catch (e) {} };
+let aiMsgs = [], aiBusy = false, aiFn = null;
+function openAI() {
+  closeOvQuiet(); curKind = 'ai'; ovBack = null; aiMsgs = aiLoad();
+  if (!aiMsgs.length) aiMsgs = [{role: 'assistant', content: 'يا أهلاً يا ' + me.name.split(' ')[0] + '! أنا شلبي 😄 صاحبك الـ AI. احكيلي، عملت إيه النهاردة؟', t: Date.now()}];
+  ov(`<header class="bar"><button class="ib" data-a="close" aria-label="رجوع">${ic('back')}</button><div class="hdinfo">${av('ش', '#2f9e5f', 40)}<div class="ttl"><b>شلبي <span class="aitag">AI</span></b><small>ذكاء اصطناعي · صاحبك</small></div></div><button class="ib" data-a="aiclear" aria-label="مسح المحادثة">${ic('trash')}</button></header>
+    <div class="msgs" id="aimsgs"></div>
+    <div class="composer"><input id="aiinp" placeholder="اكتب لشلبي..." autocomplete="off" enterkeyhint="send" maxlength="1000"><button class="fab" data-a="aisend" aria-label="إرسال">${icf('send')}</button></div>`);
+  drawAI(); if (matchMedia('(min-width:900px)').matches) $('#aiinp').focus();
+}
+function drawAI() {
+  const el = $('#aimsgs'); if (!el) return;
+  el.innerHTML = `<div class="sysmsg">شلبي ذكاء اصطناعي وممكن يغلط. سجل الكلام محفوظ على جهازك.</div>` +
+    aiMsgs.map(m => `<div class="b ${m.role === 'user' ? 'me' : ''}">${esc(m.content)}<time>${fmtT(m.t)}</time></div>`).join('') +
+    (aiBusy ? `<div class="sysmsg">شلبي بيكتب...</div>` : '');
+  el.scrollTop = el.scrollHeight;
+}
+async function sendAI() {
+  const i = $('#aiinp'); if (!i || aiBusy) return; const v = i.value.trim(); if (!v) return; i.value = '';
+  aiMsgs.push({role: 'user', content: v, t: Date.now()}); aiSave(aiMsgs); aiBusy = true; drawAI();
+  try {
+    if (!aiFn) aiFn = httpsCallable(getFunctions(app), 'shalaby');
+    const r = await aiFn({messages: aiMsgs.filter(m => !m.err).slice(-20).map(m => ({role: m.role, content: m.content}))});
+    aiMsgs.push({role: 'assistant', content: r.data.reply, t: Date.now()});
+  } catch (e) {
+    const c = e.code || '';
+    aiMsgs.push({role: 'assistant', err: true, t: Date.now(), content:
+      c.includes('resource-exhausted') ? 'كده كتير عليا النهاردة 😅 ارتاح شوية وارجعلي بعد ساعة'
+      : (c.includes('not-found') || c.includes('unavailable') || c.includes('internal')) ? 'مش قادر أتوصل بالسيرفر دلوقتي، لسه ما اتفعّلش أو فيه عطل'
+      : c.includes('permission-denied') ? 'حسابك متوقف عن استخدام شلبي' : 'حصلت مشكلة، جرّب تاني'});
+  }
+  aiBusy = false; aiSave(aiMsgs); if (curKind === 'ai') drawAI();
+}
+
 /* ---------- admin ---------- */
 async function openAdmin() {
   if (!isAdmin) return; closeOvQuiet(); curKind = 'admin'; ovBack = null;
@@ -1016,6 +1056,9 @@ document.addEventListener('click', async e => {
     case 'img': { const m = msgs.find(x => x.id === id); if (m) { const l = $('#lb'); l.innerHTML = `<img src="${esc(m.data)}" alt="">`; l.hidden = false; } break; }
     case 'file': { const m = msgs.find(x => x.id === id); if (m) { const l = document.createElement('a'); l.href = m.data; l.download = m.name; l.click(); } break; }
     case 'mbub': confirmBox('حذف الرسالة', 'سيتم حذف الرسالة للجميع.', 'حذف', async () => { try { await deleteDoc(doc(db, 'chats', cur, 'messages', id)); } catch (x) { toast('تعذر الحذف'); } }); break;
+    case 'ai': openAI(); break;
+    case 'aisend': sendAI(); break;
+    case 'aiclear': confirmBox('مسح المحادثة', 'هتتمسح محادثتك مع شلبي من جهازك.', 'مسح', async () => { localStorage.removeItem('dama_ai_' + uid); openAI(); }); break;
     case 'newchat': openPicker('dm'); break;
     case 'newgroup': openPicker('group'); break;
     case 'pkpick': if (pk.mode === 'dm') startDM(id); else { const i = pk.sel.indexOf(id); i >= 0 ? pk.sel.splice(i, 1) : pk.sel.push(id); drawPk(); } break;
@@ -1077,6 +1120,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.isComposing) return;
   const t = e.target;
   if (t.id === 'inp') sendMic();
+  if (t.id === 'aiinp') sendAI();
   if (t.id === 'cpin') { const b = $('[data-a="cpost"]'); b && b.click(); }
   if (t.matches('.rp input')) { const b = t.parentElement.querySelector('[data-a="sreply"]'); b && b.click(); }
   if (t.matches('[data-sr]')) { const b = $('[data-a="sviewreply"]'); b && b.click(); }
