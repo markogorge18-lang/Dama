@@ -262,7 +262,7 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, sendPasswordResetEmail, updateProfile} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, orderBy, limit, limitToLast, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, getDocs, runTransaction, getCountFromServer} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 /* =====================================================================
@@ -486,8 +486,7 @@ async function googleSignIn(btn) {
   const p = new GoogleAuthProvider();
   try { await signInWithPopup(auth, p); }
   catch (e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { try { await signInWithRedirect(auth, p); return; } catch (x) { e = x; } }
-    setAuthErr(authMsg(e));
+    setAuthErr(e.code === 'auth/popup-blocked' ? 'المتصفح منع النافذة، اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة' : authMsg(e));
   } finally { busy(btn, false); }
 }
 async function saveProfile({name, handle, bio, photo}, isNew) {
